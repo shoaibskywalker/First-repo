@@ -55,6 +55,9 @@ firebaseAuth = FirebaseAuth.getInstance()
                             progressBar.visibility=View.VISIBLE
                             val intent = Intent(this,MainActivity::class.java)
                             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
+                            intent.putExtra("name", nameVar)
+                            intent.putExtra("email", emailVar)
+                            intent.putExtra("source", "signup")
                             startActivity(intent)
                         }else{
                             Toast.makeText(this,it.exception.toString(),Toast.LENGTH_SHORT).show()
@@ -79,7 +82,7 @@ firebaseAuth = FirebaseAuth.getInstance()
         val nameVar = name.text.toString()
         val emailVar = email.text.toString()
         databaseReference = FirebaseDatabase.getInstance().getReference()
-        databaseReference.child("User").child(uid).setValue(User(nameVar,emailVar,uid))
+        databaseReference.child("User").child(nameVar).setValue(User(nameVar,emailVar,uid))
 
     }
 
