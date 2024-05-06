@@ -10,6 +10,8 @@ import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.google.firebase.auth.FirebaseAuth
 import com.test.loginfirebase.R
 import com.test.loginfirebase.data.Message
+import java.text.DateFormat
+import java.util.Date
 
 class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
@@ -50,10 +52,20 @@ class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) 
             val viewHolder = holder as SendViewHolder
 
             holder.sendText.text = currentpossition.message
+            holder.timeSend.text = currentpossition.timeStamp?.let {
+                Date(
+                    it
+                )
+            }?.let { DateFormat.getTimeInstance().format(it) }
         } else {
             val viewHolder = holder as ReceiveViewHolder
 
             holder.receiveText.text = currentpossition.message
+            holder.timeReceive.text = currentpossition.timeStamp?.let {
+                Date(
+                    it
+                )
+            }?.let { DateFormat.getTimeInstance().format(it) }
         }
     }
 
@@ -61,12 +73,14 @@ class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) 
     class SendViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
 
         val sendText = itemView.findViewById<TextView>(R.id.textSend)
+        val timeSend = itemView.findViewById<TextView>(R.id.sendTimeSend)
 
     }
 
     class ReceiveViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
 
         val receiveText = itemView.findViewById<TextView>(R.id.textReceive)
+        val timeReceive = itemView.findViewById<TextView>(R.id.sendTimeReceive)
 
     }
 
