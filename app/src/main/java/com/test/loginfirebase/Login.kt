@@ -18,6 +18,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
+import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
 
@@ -30,6 +31,7 @@ class Login : AppCompatActivity() {
         shakeAnimator.repeatCount = 4
         shakeAnimator.start()
     }
+
     private lateinit var firebaseAuth: FirebaseAuth
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,74 +40,125 @@ class Login : AppCompatActivity() {
 
         firebaseAuth = FirebaseAuth.getInstance()
 
-        val mailEt:EditText = findViewById(R.id.emailEt)
-        val passEt:EditText = findViewById(R.id.passET)
-        val buttonLog:Button = findViewById(R.id.buttonlog)
-        val textLog:TextView = findViewById(R.id.textViewlog)
-        val number : TextView = findViewById(R.id.number)
+        val mailEt: EditText = findViewById(R.id.emailEt)
+        val passEt: EditText = findViewById(R.id.passET)
+        val buttonLog: Button = findViewById(R.id.buttonlog)
+        val textLog: TextView = findViewById(R.id.textViewlog)
+        val number: TextView = findViewById(R.id.number)
+
+        val currentUser = firebaseAuth.currentUser
+        if (currentUser != null) {
+            // User is already logged in, navigate to the home screen
+            navigateToHomeScreen()
+            return // Finish this activity to prevent going back to the login screen
+        }
+
+
+        /*if (currentUser != null) {
+            val userId = currentUser.uid
+
+            val databaseReference = FirebaseDatabase.getInstance().getReference("users").child(userId)
+            databaseReference.addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (snapshot.exists()) {
+                        val user = snapshot.getValue(User::class.java)
+                        val usern = user?.name.toString()
+                        val email = user?.email
+                        Log.d("check name",usern)
+
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    // Handle database error
+                }
+            })
+
+        }*/
+
 
         number.setOnClickListener {
 
-            val intent = Intent(this,Phone::class.java)
+            val intent = Intent(this, Phone::class.java)
             startActivity(intent)
         }
 
 
-        buttonLog.setOnClickListener {
+        buttonLog.setOnClickListener {view ->
 
             val mailBind = mailEt.text.toString()
             val passBind = passEt.text.toString()
 
-if (isNetworkConnected()) {
-    if (mailBind.isNotEmpty() && passBind.isNotEmpty()) {
+            if (isNetworkConnected()) {
+                if (mailBind.isNotEmpty() && passBind.isNotEmpty()) {
 
-        firebaseAuth.signInWithEmailAndPassword(mailBind, passBind).addOnCompleteListener {
-            if (it.isSuccessful) {
-                val intent = Intent(this, MainActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
-                startActivity(intent)
+                    firebaseAuth.signInWithEmailAndPassword(mailBind, passBind)
+                        .addOnCompleteListener {
+                            if (it.isSuccessful) {
+                                showSnackbar(view,"Login Successfully")
+                                val intent = Intent(this, MainActivity::class.java)
+                                intent.flags =
+                                    Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
+                                intent.putExtra("mail", mailBind)
+                                
+                                intent.putExtra("source", "login")
+                                startActivity(intent)
+                                Toast.makeText(this, "Login Successfully", Toast.LENGTH_SHORT).show()
+
+                            } else {
+                                showSnackbar(view,"Incorrect Password")
+
+                                vibrateTextField()
+                                passEt.shake()
+                                val passlayout: TextInputLayout = findViewById(R.id.passwordLayout)
+
+                                passlayout.boxStrokeColor =
+                                    ContextCompat.getColor(this, R.color.red)
+                            }
+                        }
+
+                } else {
+                    //Toast.makeText(this, "Your fields is empty", Toast.LENGTH_SHORT).show()
+                    showSnackbar(view,"Your field is empty")
+                }
             } else {
-
-                Toast.makeText(this, "Incorrect password", Toast.LENGTH_SHORT).show()
-
-                vibrateTextField()
-                passEt.shake()
-                val passlayout: TextInputLayout = findViewById(R.id.passwordLayout)
-
-                passlayout.boxStrokeColor = ContextCompat.getColor(this, R.color.red)
-
-
+                showNoInternetDialog()
             }
+
         }
 
-    } else {
-        Toast.makeText(this, "Your fields is empty", Toast.LENGTH_SHORT).show()
-    }
-}else{
-    showNoInternetDialog()
-}
-
-
+        textLog.setOnClickListener {
+            if (isNetworkConnected()) {
+                val intent = Intent(this, SignUp::class.java)
+                startActivity(intent)
+            } else {
+                showNoInternetDialog()
             }
-
-            textLog.setOnClickListener {
-if (isNetworkConnected()) {
-    val intent = Intent(this, SignUp::class.java)
-    startActivity(intent)
-}else{
-    showNoInternetDialog()
-}
-            }
+        }
         setupTextWatchers()
 
 
+    }
+private fun showSnackbar(view: View,message:String){
+    val snackbar = Snackbar.make(view,message, Snackbar.LENGTH_SHORT)
+    val snackbarView = snackbar.view
+    val snackbarText = snackbarView.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
+    snackbarView.setBackgroundColor(ContextCompat.getColor(this, R.color.normalColor))
+    snackbarText.setTextColor(ContextCompat.getColor(this, R.color.white))
+    snackbar.show()
+}
 
 
+    private fun navigateToHomeScreen() {
+        val intent = Intent(this, MainActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
+        startActivity(intent)
+        finish() // Finish this activity to prevent going back to the login screen
     }
 
-
     private fun isNetworkConnected(): Boolean {
-        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val connectivityManager =
+            getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val activeNetworkInfo = connectivityManager.activeNetworkInfo
         return activeNetworkInfo != null && activeNetworkInfo.isConnected
     }
@@ -126,10 +179,9 @@ if (isNetworkConnected()) {
     }
 
 
-
     private fun setupTextWatchers() {
-        val mailEt:EditText = findViewById(R.id.emailEt)
-        val passEt:EditText = findViewById(R.id.passET)
+        val mailEt: EditText = findViewById(R.id.emailEt)
+        val passEt: EditText = findViewById(R.id.passET)
 
 
         mailEt.addTextChangedListener(object : TextWatcher {
@@ -167,10 +219,10 @@ if (isNetworkConnected()) {
     }
 
     private fun updateLoginButtonState() {
-        val buttonLog:Button = findViewById(R.id.buttonlog)
+        val buttonLog: Button = findViewById(R.id.buttonlog)
 
-        val mailEt:EditText = findViewById(R.id.emailEt)
-        val passEt:EditText = findViewById(R.id.passET)
+        val mailEt: EditText = findViewById(R.id.emailEt)
+        val passEt: EditText = findViewById(R.id.passET)
 
         val email = mailEt.text.toString()
         val password = passEt.text.toString()
@@ -207,6 +259,31 @@ if (isNetworkConnected()) {
             }
         }
     }
+
+    /*private fun fetchUserData():String{
+        val currentUserr = firebaseAuth.currentUser
+        var userName = ""
+        if (currentUserr != null) {
+            val userId = currentUserr.uid
+
+            val databaseReference = FirebaseDatabase.getInstance().getReference("users").child(userId)
+            databaseReference.addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (snapshot.exists()) {
+                        val user = snapshot.getValue(User::class.java)
+                         userName = user?.name.toString()
+                        val email = user?.email
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    // Handle database error
+                }
+            })
+
+        }
+        return userName
+    }*/
 }
 
 
