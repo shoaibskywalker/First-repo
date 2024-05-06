@@ -12,7 +12,7 @@ import com.test.loginfirebase.R
 
 import com.test.loginfirebase.data.User
 
-class UserAdapter(val context: Context, val  name : ArrayList<User>):RecyclerView.Adapter<UserAdapter.UserViewholder>() {
+class UserAdapter(val context: Context, val  name : ArrayList<User>, private var filteredList: ArrayList<User>):RecyclerView.Adapter<UserAdapter.UserViewholder>() {
 
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): UserViewholder {
@@ -24,12 +24,12 @@ class UserAdapter(val context: Context, val  name : ArrayList<User>):RecyclerVie
 
     override fun getItemCount(): Int {
 
-        return name.size
+        return filteredList.size
     }
 
     override fun onBindViewHolder(holder: UserViewholder, position: Int) {
 
-        val currentUser = name[position]
+        val currentUser = filteredList[position]
         holder.text.text=currentUser.name
 
         holder.itemView.setOnClickListener {
@@ -49,6 +49,10 @@ class UserAdapter(val context: Context, val  name : ArrayList<User>):RecyclerVie
     class UserViewholder(itemview: View):RecyclerView.ViewHolder(itemview) {
 
         val text = itemview.findViewById<TextView>(R.id.txtName)
+    }
+    fun filterList(filteredList: ArrayList<User>) {
+        this.filteredList = filteredList
+        notifyDataSetChanged()
     }
 
 }
