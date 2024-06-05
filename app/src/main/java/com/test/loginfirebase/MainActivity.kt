@@ -7,13 +7,13 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.media.Image
 import android.net.ConnectivityManager
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
@@ -27,11 +27,13 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.FileProvider
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.bumptech.glide.Glide
 import com.google.android.material.navigation.NavigationView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
@@ -42,7 +44,9 @@ import com.google.firebase.database.ValueEventListener
 import com.test.loginfirebase.adapter.UserAdapter
 import com.test.loginfirebase.data.User
 import com.test.loginfirebase.databinding.ActivityMainBinding
+import com.test.loginfirebase.utils.sessionManager.UserSessionManager
 import de.hdodenhof.circleimageview.CircleImageView
+import java.io.File
 
 class MainActivity : AppCompatActivity() {
 
@@ -52,7 +56,7 @@ class MainActivity : AppCompatActivity() {
     lateinit var filterList: ArrayList<User>
     private lateinit var binding: ActivityMainBinding
     private lateinit var mAuth: FirebaseAuth
-    private lateinit var currentUserRef:DatabaseReference
+    private lateinit var currentUserRef: DatabaseReference
     private lateinit var databaseReference: DatabaseReference
     private lateinit var toggle: ActionBarDrawerToggle
     private lateinit var headerView: View
@@ -60,22 +64,30 @@ class MainActivity : AppCompatActivity() {
     private lateinit var headerEmailTextView: TextView
     private lateinit var headerImageView: CircleImageView
     private lateinit var refresh: SwipeRefreshLayout
+    private lateinit var prefs: UserSessionManager
+    private lateinit var emailLogin: String
+    private lateinit var emailSignUp: String
+    private lateinit var progressBar: ProgressBar
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        prefs = UserSessionManager(this)
+
 //Online Status
-        currentUserRef = FirebaseDatabase.getInstance().getReference().child("Users Online").child(FirebaseAuth.getInstance().currentUser?.uid!!)
-        currentUserRef.child("online").setValue(true) // Set online status to true when the app is opened
+        currentUserRef = FirebaseDatabase.getInstance().getReference().child("Users")
+            .child(FirebaseAuth.getInstance().currentUser?.uid!!)
+        currentUserRef.child("online")
+            .setValue(true) // Set online status to true when the app is opened
         currentUserRef.child("online").onDisconnect().setValue(false)
         createNotificationChannel()
         //signup fetching name and email
-        val name = intent.getStringExtra("name")
-        val email = intent.getStringExtra("email")
+        val nameSignUp = intent.getStringExtra("name")
+        emailSignUp = intent.getStringExtra("email").toString()
         //login fetching name and email
-        val  mail = intent.getStringExtra("mail")
-        val nameLog = intent.getStringExtra("name")
+        emailLogin = intent.getStringExtra("mail").toString()
+        val nameLogin = intent.getStringExtra("name")
         val source = intent.getStringExtra("source")
 
         val toolbarName = findViewById<TextView>(R.id.toolbarNme)
@@ -83,21 +95,21 @@ class MainActivity : AppCompatActivity() {
         val searchIcon = findViewById<ImageView>(R.id.search_icon)
         val searchBar = findViewById<EditText>(R.id.searchField)
         val cancelButton = findViewById<ImageView>(R.id.cancelbuttonsearch)
-         refresh = findViewById(R.id.swipe_refresh_layout)
+        refresh = findViewById(R.id.swipe_refresh_layout)
 
         refresh.setOnRefreshListener {
             refreshScreen()
         }
 
-        searchIcon.setOnClickListener{
-            toolbarName.visibility =  View.GONE
+        searchIcon.setOnClickListener {
+            toolbarName.visibility = View.GONE
             hamburger.visibility = View.GONE
             searchIcon.visibility = View.GONE
             searchBar.visibility = View.VISIBLE
             cancelButton.visibility = View.VISIBLE
         }
-        cancelButton.setOnClickListener{
-            toolbarName.visibility =  View.VISIBLE
+        cancelButton.setOnClickListener {
+            toolbarName.visibility = View.VISIBLE
             hamburger.visibility = View.VISIBLE
             searchIcon.visibility = View.VISIBLE
             searchBar.visibility = View.GONE
@@ -125,25 +137,34 @@ class MainActivity : AppCompatActivity() {
         headerNameTextView = headerView.findViewById(R.id.shoaib)
         headerEmailTextView = headerView.findViewById(R.id.email)
         headerImageView = headerView.findViewById(R.id.imageView)
-        headerNameTextView.text = "Shoaib"
+        Glide.with(this)
+            .load(prefs.userProfilePicture) // Assuming prefs.userProfilePic is the image URL or URI
+            .placeholder(R.drawable.ic_placeholder) // Placeholder image resource
+            .error(R.drawable.ic_placeholder) // Error image resource
+            .into(headerImageView)
+        headerNameTextView.text = "Placeholder"
 
         if (source == "login") {
-            headerEmailTextView.text = mail
+            headerEmailTextView.text = emailLogin
+            headerNameTextView.text = nameLogin
 
         } else if (source == "signup") {
-            headerEmailTextView.text = email
+            headerEmailTextView.text = emailSignUp
+            headerNameTextView.text = nameSignUp
 
         }
 
 
-        toggle = ActionBarDrawerToggle(this, drawlayout,R.string.open, R.string.close)
+        toggle = ActionBarDrawerToggle(this, drawlayout, R.string.open, R.string.close)
         drawlayout.addDrawerListener(toggle)
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         navview.setNavigationItemSelectedListener {
             when (it.itemId) {
-                R.id.profile -> {moveToProfileActivity()
+                R.id.profile -> {
+                    moveToProfileActivity()
                 }
+
                 R.id.about -> moveToAboutActivity()
                 R.id.help -> moveToHelpActivity()
                 R.id.share -> shareOurApp()
@@ -158,19 +179,19 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
-        binding.imageBack.setOnClickListener{
+        binding.imageBack.setOnClickListener {
             binding.drawerlayout.openDrawer(GravityCompat.START)
         }
 //User recycler view
         recyclerView = findViewById(R.id.recyclerView)
-        val progressBar: ProgressBar = findViewById(R.id.progressBar)
+        progressBar = findViewById(R.id.progressBar)
 
         mAuth = FirebaseAuth.getInstance()
         databaseReference = FirebaseDatabase.getInstance().getReference()
         if (isNetworkConnected()) {
             userList = ArrayList()
             filterList = ArrayList()
-            mAdapter = UserAdapter(this, userList,filterList)
+            mAdapter = UserAdapter(this, userList, filterList)
 
             recyclerView.layoutManager = LinearLayoutManager(this)
             recyclerView.adapter = mAdapter
@@ -207,6 +228,32 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun refreshScreen() {
+
+        databaseReference.child("User").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+
+                progressBar.visibility = View.VISIBLE
+                userList.clear()
+                filterList.clear()
+                for (postSnapshot in snapshot.children) {
+
+                    val currentUser = postSnapshot.getValue(User::class.java)
+                    if (mAuth.currentUser?.uid != currentUser?.uid) {
+
+                        userList.add(currentUser!!)
+                        filterList.add(currentUser!!)
+                    }
+
+                }
+                progressBar.visibility = View.GONE
+                mAdapter.notifyDataSetChanged()
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+
+            }
+
+        })
         mAdapter.notifyDataSetChanged()
         refresh.isRefreshing = false
     }
@@ -283,16 +330,16 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun sendNotification(receiverId: String,message: String) {
+    private fun sendNotification(receiverId: String, message: String) {
         val intent = Intent(this, ChatActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            putExtra("uid",receiverId)
+            putExtra("uid", receiverId)
         }
         val pendingIntent: PendingIntent =
             PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_MUTABLE)
 
         val builder = NotificationCompat.Builder(this, "1234")
-            .setSmallIcon(R.drawable.set_targets_icon)
+            .setSmallIcon(R.drawable.baseline_keyboard_backspace_24)
             .setContentTitle("ELA Chat")
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
@@ -375,18 +422,23 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun moveToProfileActivity() {
-        startActivity(Intent(this, Profile::class.java))
+        startActivity(Intent(this, Profile::class.java).putExtra("login", emailLogin))
+
     }
 
-    private fun shareOurApp(){
+    private fun shareOurApp() {
+        val sendText = "Check Out this cool app!"
+
         val sendIntent = Intent().apply {
             action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_STREAM, "content://com.test.loginfirebase/")
-            type = "application/vnd.android.package-archive"
+            putExtra(Intent.EXTRA_TEXT, sendText)
+            type = "text/plain"
         }
+
         val shareIntent = Intent.createChooser(sendIntent, null)
         startActivity(shareIntent)
     }
+
     private fun filterUsers(query: String) {
         val filteredUsers = userList.filter { user ->
             user.name!!.contains(query, ignoreCase = true)
