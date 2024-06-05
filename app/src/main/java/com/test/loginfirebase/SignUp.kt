@@ -14,6 +14,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.test.loginfirebase.data.User
+import com.test.loginfirebase.utils.sessionManager.UserSessionManager
 
 class SignUp : AppCompatActivity() {
 
@@ -25,11 +26,15 @@ class SignUp : AppCompatActivity() {
     private lateinit var firebaseAuth: FirebaseAuth
     private lateinit var progressBar: ProgressBar
     private lateinit var databaseReference: DatabaseReference
+    private lateinit var prefs: UserSessionManager
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_sign_up)
+
+        prefs = UserSessionManager(this)
+
         name = findViewById(R.id.nameEtsign)
          email  = findViewById(R.id.emailEtsign)
          pass  = findViewById(R.id.passETsign)
@@ -45,6 +50,9 @@ firebaseAuth = FirebaseAuth.getInstance()
             val emailVar = email.text.toString()
             val passVar = pass.text.toString()
             val rePassVar = rePass.text.toString()
+
+            prefs.userNameSignup = nameVar
+            prefs.userEmailSignup = emailVar
 
             if (nameVar.isNotEmpty() && emailVar.isNotEmpty() && passVar.isNotEmpty() && rePassVar.isNotEmpty()){
                 if (passVar == rePassVar){
