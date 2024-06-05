@@ -7,6 +7,8 @@ class Message {
      var message: String? = null
     var senderId: String? = null
     var timeStamp: Long? = null
+    var messageId: String = ""
+
 
     constructor() {}
 
@@ -14,6 +16,8 @@ class Message {
         this.message = message
         this.senderId = senderId
         this.timeStamp = Date().time
+        var messageId: String = ""
+
 
     }
 
