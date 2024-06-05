@@ -21,6 +21,7 @@ import androidx.core.content.ContextCompat
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
+import com.test.loginfirebase.utils.sessionManager.UserSessionManager
 
 class Login : AppCompatActivity() {
 
@@ -33,11 +34,13 @@ class Login : AppCompatActivity() {
     }
 
     private lateinit var firebaseAuth: FirebaseAuth
+    private lateinit var prefs: UserSessionManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
 
+        prefs = UserSessionManager(this)
         firebaseAuth = FirebaseAuth.getInstance()
 
         val mailEt: EditText = findViewById(R.id.emailEt)
@@ -54,29 +57,6 @@ class Login : AppCompatActivity() {
         }
 
 
-        /*if (currentUser != null) {
-            val userId = currentUser.uid
-
-            val databaseReference = FirebaseDatabase.getInstance().getReference("users").child(userId)
-            databaseReference.addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    if (snapshot.exists()) {
-                        val user = snapshot.getValue(User::class.java)
-                        val usern = user?.name.toString()
-                        val email = user?.email
-                        Log.d("check name",usern)
-
-                    }
-                }
-
-                override fun onCancelled(error: DatabaseError) {
-                    // Handle database error
-                }
-            })
-
-        }*/
-
-
         number.setOnClickListener {
 
             val intent = Intent(this, Phone::class.java)
@@ -84,10 +64,11 @@ class Login : AppCompatActivity() {
         }
 
 
-        buttonLog.setOnClickListener {view ->
+        buttonLog.setOnClickListener { view ->
 
             val mailBind = mailEt.text.toString()
             val passBind = passEt.text.toString()
+            prefs.userEmailLogin = mailBind
 
             if (isNetworkConnected()) {
                 if (mailBind.isNotEmpty() && passBind.isNotEmpty()) {
@@ -95,18 +76,20 @@ class Login : AppCompatActivity() {
                     firebaseAuth.signInWithEmailAndPassword(mailBind, passBind)
                         .addOnCompleteListener {
                             if (it.isSuccessful) {
-                                showSnackbar(view,"Login Successfully")
+                                showSnackbar(view, "Login Successfully")
                                 val intent = Intent(this, MainActivity::class.java)
                                 intent.flags =
                                     Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
                                 intent.putExtra("mail", mailBind)
-                                
+                                intent.putExtra("name",prefs.userNameSignup)
+
                                 intent.putExtra("source", "login")
                                 startActivity(intent)
-                                Toast.makeText(this, "Login Successfully", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this, "Login Successfully", Toast.LENGTH_SHORT)
+                                    .show()
 
                             } else {
-                                showSnackbar(view,"Incorrect Password")
+                                showSnackbar(view, "Incorrect Password")
 
                                 vibrateTextField()
                                 passEt.shake()
@@ -119,7 +102,7 @@ class Login : AppCompatActivity() {
 
                 } else {
                     //Toast.makeText(this, "Your fields is empty", Toast.LENGTH_SHORT).show()
-                    showSnackbar(view,"Your field is empty")
+                    showSnackbar(view, "Your field is empty")
                 }
             } else {
                 showNoInternetDialog()
@@ -139,14 +122,16 @@ class Login : AppCompatActivity() {
 
 
     }
-private fun showSnackbar(view: View,message:String){
-    val snackbar = Snackbar.make(view,message, Snackbar.LENGTH_SHORT)
-    val snackbarView = snackbar.view
-    val snackbarText = snackbarView.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
-    snackbarView.setBackgroundColor(ContextCompat.getColor(this, R.color.normalColor))
-    snackbarText.setTextColor(ContextCompat.getColor(this, R.color.white))
-    snackbar.show()
-}
+
+    private fun showSnackbar(view: View, message: String) {
+        val snackbar = Snackbar.make(view, message, Snackbar.LENGTH_SHORT)
+        val snackbarView = snackbar.view
+        val snackbarText =
+            snackbarView.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
+        snackbarView.setBackgroundColor(ContextCompat.getColor(this, R.color.normalColor))
+        snackbarText.setTextColor(ContextCompat.getColor(this, R.color.white))
+        snackbar.show()
+    }
 
 
     private fun navigateToHomeScreen() {
@@ -259,31 +244,6 @@ private fun showSnackbar(view: View,message:String){
             }
         }
     }
-
-    /*private fun fetchUserData():String{
-        val currentUserr = firebaseAuth.currentUser
-        var userName = ""
-        if (currentUserr != null) {
-            val userId = currentUserr.uid
-
-            val databaseReference = FirebaseDatabase.getInstance().getReference("users").child(userId)
-            databaseReference.addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    if (snapshot.exists()) {
-                        val user = snapshot.getValue(User::class.java)
-                         userName = user?.name.toString()
-                        val email = user?.email
-                    }
-                }
-
-                override fun onCancelled(error: DatabaseError) {
-                    // Handle database error
-                }
-            })
-
-        }
-        return userName
-    }*/
 }
 
 
