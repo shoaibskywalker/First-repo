@@ -4,9 +4,11 @@ import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
+import com.bumptech.glide.Glide
 import com.google.firebase.auth.FirebaseAuth
 import com.test.loginfirebase.R
 import com.test.loginfirebase.data.Message
@@ -18,6 +20,8 @@ class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) 
 
     val ITEM_RECEIVE = 1
     val ITEM_SEND = 2
+
+    var onMessageLongClickListener: ((Message) -> Unit)? = null
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
 
@@ -57,8 +61,12 @@ class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) 
                     it
                 )
             }?.let { DateFormat.getTimeInstance().format(it) }
+            viewHolder.itemView.setOnLongClickListener{
+                onMessageLongClickListener!!.invoke(currentpossition)
+                true
+            }
         } else {
-            val viewHolder = holder as ReceiveViewHolder
+            val viewHolderReceive = holder as ReceiveViewHolder
 
             holder.receiveText.text = currentpossition.message
             holder.timeReceive.text = currentpossition.timeStamp?.let {
@@ -66,6 +74,10 @@ class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) 
                     it
                 )
             }?.let { DateFormat.getTimeInstance().format(it) }
+            viewHolderReceive.itemView.setOnLongClickListener{
+                onMessageLongClickListener!!.invoke(currentpossition)
+                true
+            }
         }
     }
 
