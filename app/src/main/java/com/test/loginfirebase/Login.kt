@@ -69,6 +69,9 @@ class Login : AppCompatActivity() {
             val mailBind = mailEt.text.toString()
             val passBind = passEt.text.toString()
             prefs.userEmailLogin = mailBind
+            val userNameLogin = mailBind.substringBefore('@').replace(Regex("[0-9]"), "")
+
+            prefs.userNameLogin = userNameLogin
 
             if (isNetworkConnected()) {
                 if (mailBind.isNotEmpty() && passBind.isNotEmpty()) {
@@ -81,7 +84,7 @@ class Login : AppCompatActivity() {
                                 intent.flags =
                                     Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
                                 intent.putExtra("mail", mailBind)
-                                intent.putExtra("name",prefs.userNameSignup)
+                                intent.putExtra("name",userNameLogin)
 
                                 intent.putExtra("source", "login")
                                 startActivity(intent)
@@ -99,6 +102,7 @@ class Login : AppCompatActivity() {
                                     ContextCompat.getColor(this, R.color.red)
                             }
                         }
+
 
                 } else {
                     //Toast.makeText(this, "Your fields is empty", Toast.LENGTH_SHORT).show()
