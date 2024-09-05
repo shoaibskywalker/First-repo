@@ -54,65 +54,66 @@
 
     </androidx.cardview.widget.CardView>
 
-    <ImageView
-        android:id="@+id/backgroundImage"
+    <!-- User Info CardView -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/userInfoCard"
         android:layout_width="match_parent"
-        android:layout_height="200dp"
-        android:scaleType="centerCrop"
-        android:src="@drawable/shoaib"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/toolbar" />
-
-    <de.hdodenhof.circleimageview.CircleImageView
-        android:id="@+id/profileImage"
-        android:layout_width="120dp"
-        android:layout_height="120dp"
-        android:layout_marginTop="220dp"
-        android:src="@drawable/shoaib"
-        android:scaleType="centerCrop"
-        app:civ_border_width="2dp"
-        app:civ_border_color="@color/white"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"/>
-
-    <de.hdodenhof.circleimageview.CircleImageView
-        android:id="@+id/editImage"
-        android:layout_width="20dp"
-        android:layout_height="20dp"
-        android:layout_marginTop="304dp"
-        app:civ_circle_background_color="#C6C6C6"
-        android:scaleType="centerCrop"
-        android:src="@drawable/baseline_edit_24"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.621"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <TextView
-        android:id="@+id/textName"
-        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Shoaib"
-        android:textStyle="bold"
-        android:layout_marginTop="30dp"
-        android:textColor="@android:color/black"
-        android:textSize="24sp"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_margin="16dp"
+        app:layout_constraintTop_toBottomOf="@id/toolbar"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/profileImage" />
-
-    <TextView
-        android:id="@+id/textEmail"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="shoaibali@gmail.com"
-        android:layout_marginTop="5dp"
-        android:textColor="@android:color/black"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/textName" />
+        app:cardElevation="4dp"
+        app:cardCornerRadius="8dp"
+        app:cardBackgroundColor="@android:color/white">
 
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp">
+
+            <de.hdodenhof.circleimageview.CircleImageView
+                android:id="@+id/userImage"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:src="@drawable/shoaib"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                android:layout_marginEnd="16dp"
+                android:scaleType="centerCrop"
+                android:contentDescription="image"/>
+
+            <TextView
+                android:id="@+id/userName"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="User Name"
+                android:layout_marginStart="15dp"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@android:color/black"
+                app:layout_constraintTop_toTopOf="@id/userImage"
+                app:layout_constraintStart_toEndOf="@id/userImage"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toTopOf="@id/userEmail"
+                app:layout_constraintVertical_bias="0.2"/>
+
+            <TextView
+                android:id="@+id/userEmail"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="user@example.com"
+                android:textSize="16sp"
+                android:layout_marginStart="15dp"
+                android:textColor="@android:color/black"
+                app:layout_constraintTop_toBottomOf="@id/userName"
+                app:layout_constraintStart_toEndOf="@id/userImage"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="@id/userImage"
+                app:layout_constraintVertical_bias="0.8"/>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.cardview.widget.CardView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
