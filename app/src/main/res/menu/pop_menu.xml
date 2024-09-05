@@ -13,9 +13,9 @@
         android:icon="@drawable/baseline_info_outline_24"
         android:title="About"/>
 
-    <item android:id="@+id/help"
-        android:icon="@drawable/baseline_help_24"
-        android:title="Help" />
+    <item android:id="@+id/videoCall"
+        android:icon="@drawable/baseline_videocall"
+        android:title="Video Call " />
 
     <group android:checkableBehavior="single">
 
