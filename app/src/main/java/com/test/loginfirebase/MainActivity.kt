@@ -66,6 +66,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var refresh: SwipeRefreshLayout
     private lateinit var prefs: UserSessionManager
     private lateinit var emailLogin: String
+    private lateinit var nameLogin: String
     private lateinit var emailSignUp: String
     private lateinit var progressBar: ProgressBar
 
@@ -87,7 +88,7 @@ class MainActivity : AppCompatActivity() {
         emailSignUp = intent.getStringExtra("email").toString()
         //login fetching name and email
         emailLogin = intent.getStringExtra("mail").toString()
-        val nameLogin = intent.getStringExtra("name")
+        nameLogin = intent.getStringExtra("name").toString()
         val source = intent.getStringExtra("source")
 
         val toolbarName = findViewById<TextView>(R.id.toolbarNme)
@@ -166,7 +167,7 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 R.id.about -> moveToAboutActivity()
-                R.id.help -> moveToHelpActivity()
+                R.id.videoCall -> moveToHelpActivity()
                 R.id.share -> shareOurApp()
                 R.id.rate -> showRatingDialog()
                 R.id.logout -> showDialogForLogOut()
