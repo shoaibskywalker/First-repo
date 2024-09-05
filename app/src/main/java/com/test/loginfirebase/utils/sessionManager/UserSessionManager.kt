@@ -41,6 +41,13 @@ class UserSessionManager
             prefEditor.apply()
         }
 
+    var userNameLogin: String?
+        get() = prefs.getString("userNameLogin", null)
+        set(userName) {
+            prefEditor.putString("userNameLogin", userName)
+            prefEditor.apply()
+        }
+
     fun saveString(key: String, value: String) {
         val editor = prefs.edit()
         editor.putString(key, value)
