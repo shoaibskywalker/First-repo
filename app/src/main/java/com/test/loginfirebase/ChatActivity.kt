@@ -137,7 +137,7 @@ class ChatActivity : AppCompatActivity() {
         val receiverUid = intent.getStringExtra("uid")
         val senderUid = FirebaseAuth.getInstance().currentUser?.uid
         val name = intent.getStringExtra("name")
-        val text = findViewById<TextView>(R.id.toolbar).apply {
+        val text = findViewById<TextView>(R.id.toolbarName).apply {
             text = name
         }
         listenForOnlineStatus(receiverUid)
