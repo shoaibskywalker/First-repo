@@ -4,15 +4,11 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.SurfaceView
 import android.view.View
-import android.widget.ImageView
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import com.test.loginfirebase.databinding.ActivityHelpBinding
+import com.test.loginfirebase.databinding.ActivityVideoCallBinding
 import io.agora.rtc2.ChannelMediaOptions
 import io.agora.rtc2.Constants
 import io.agora.rtc2.IRtcEngineEventHandler
@@ -20,9 +16,9 @@ import io.agora.rtc2.RtcEngine
 import io.agora.rtc2.RtcEngineConfig
 import io.agora.rtc2.video.VideoCanvas
 
-class Help : AppCompatActivity() {
+class VideoCall : AppCompatActivity() {
 
-    private lateinit var binding: ActivityHelpBinding
+    private lateinit var binding: ActivityVideoCallBinding
 
 
     private val appId = "72c670b8804f42328b05cbbb08e5e244"
@@ -32,7 +28,7 @@ class Help : AppCompatActivity() {
     private val channelName = "elachat"
 
     // private var token : String? = null
-    private var token = "007eJxTYLi4eYtr07P2ncwnPb4uOrH2XPm7Ld/OL1Lx0Foc18h97+R5BQZzo2Qzc4MkCwsDkzQTI2MjiyQD0+SkpCQDi1TTVCMTk/15N9MaAhkZGp2PMDIyQCCIz86QmpOYnJFYwsAAAOACJDw="
+    private var token = "007eJxTYNDLfCusdmONcLyORWvsQZONbXZBnsxfYvhrvvo7fNI7OE2Bwdwo2czcIMnCwsAkzcTI2MgiycA0OSkpycAi1TTVyMRk7af7aQ2BjAyhpc+ZGRkgEMRnZ0jNSUzOSCxhYAAAFkwfig=="
 
     private val uid = 0
     private var isJoined = false
@@ -89,7 +85,7 @@ class Help : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityHelpBinding.inflate(layoutInflater)
+        binding = ActivityVideoCallBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         binding.imageBack.setOnClickListener {
