@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.os.Build
@@ -13,7 +14,6 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
@@ -27,7 +27,6 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.FileProvider
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -42,11 +41,11 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.test.loginfirebase.adapter.UserAdapter
+import com.test.loginfirebase.broadcastReceiver.BatteryLevelReceiver
 import com.test.loginfirebase.data.User
 import com.test.loginfirebase.databinding.ActivityMainBinding
 import com.test.loginfirebase.utils.sessionManager.UserSessionManager
 import de.hdodenhof.circleimageview.CircleImageView
-import java.io.File
 
 class MainActivity : AppCompatActivity() {
 
@@ -69,12 +68,19 @@ class MainActivity : AppCompatActivity() {
     private lateinit var nameLogin: String
     private lateinit var emailSignUp: String
     private lateinit var progressBar: ProgressBar
+    private lateinit var batteryLevelReceiver: BatteryLevelReceiver
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         prefs = UserSessionManager(this)
+
+        batteryLevelReceiver = BatteryLevelReceiver()
+
+        // Register the receiver for battery changes
+        val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+        registerReceiver(batteryLevelReceiver, filter)
 
 //Online Status
         currentUserRef = FirebaseDatabase.getInstance().getReference().child("Users")
@@ -138,6 +144,12 @@ class MainActivity : AppCompatActivity() {
         headerNameTextView = headerView.findViewById(R.id.shoaib)
         headerEmailTextView = headerView.findViewById(R.id.email)
         headerImageView = headerView.findViewById(R.id.imageView)
+        val headerArrowImage = headerView.findViewById<CircleImageView>(R.id.headerArrowImage)
+
+        headerArrowImage.setOnClickListener {
+            moveToProfile2Activity()
+        }
+
         Glide.with(this)
             .load(prefs.userProfilePicture) // Assuming prefs.userProfilePic is the image URL or URI
             .placeholder(R.drawable.ic_placeholder) // Placeholder image resource
@@ -162,15 +174,16 @@ class MainActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         navview.setNavigationItemSelectedListener {
             when (it.itemId) {
-                R.id.profile -> {
+                R.id.bags -> {
                     moveToProfileActivity()
                 }
 
                 R.id.about -> moveToAboutActivity()
-                R.id.videoCall -> moveToHelpActivity()
+                R.id.videoCall -> moveToVideoCallActivity()
                 R.id.share -> shareOurApp()
                 R.id.rate -> showRatingDialog()
                 R.id.logout -> showDialogForLogOut()
+                R.id.voiceCall -> moveToVoiceCallActivity()
 
 
                 R.id.rate -> {
@@ -418,12 +431,21 @@ class MainActivity : AppCompatActivity() {
         startActivity(Intent(this, About::class.java))
     }
 
-    private fun moveToHelpActivity() {
-        startActivity(Intent(this, Help::class.java))
+    private fun moveToVoiceCallActivity() {
+        startActivity(Intent(this, VoiceCall::class.java))
+    }
+
+    private fun moveToVideoCallActivity() {
+        startActivity(Intent(this, VideoCall::class.java))
     }
 
     private fun moveToProfileActivity() {
         startActivity(Intent(this, Profile::class.java).putExtra("login", emailLogin))
+
+    }
+
+    private fun moveToProfile2Activity() {
+        startActivity(Intent(this, Profile2::class.java))
 
     }
 
@@ -445,5 +467,11 @@ class MainActivity : AppCompatActivity() {
             user.name!!.contains(query, ignoreCase = true)
         }
         mAdapter.filterList(ArrayList(filteredUsers))
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Unregister the receiver when the activity is destroyed
+        unregisterReceiver(batteryLevelReceiver)
     }
 }
