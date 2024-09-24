@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F2F2F2">
+
+  <!-- Back Button -->
+  <TextView
+      android:id="@+id/tvBack"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:text="BACK"
+      android:textColor="#42A5F5"
+      android:textSize="16sp"
+      android:layout_margin="16dp"
+      app:layout_constraintTop_toTopOf="parent"
+      app:layout_constraintStart_toStartOf="parent" />
+
+  <!-- App Logo -->
+  <ImageView
+      android:id="@+id/logo"
+      android:layout_width="100dp"
+      android:layout_height="100dp"
+      android:layout_marginTop="50dp"
+      android:src="@drawable/ic_launcher_foreground"
+  app:layout_constraintTop_toTopOf="parent"
+  app:layout_constraintStart_toStartOf="parent"
+  app:layout_constraintEnd_toEndOf="parent" />
+
+  <!-- App Name -->
+  <TextView
+      android:id="@+id/tvAppName"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:text="Clipper"
+      android:textSize="32sp"
+      android:textStyle="bold"
+      android:layout_marginTop="16dp"
+      android:textColor="@android:color/black"
+      app:layout_constraintTop_toBottomOf="@+id/logo"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintEnd_toEndOf="parent" />
+
+  <!-- Username Input Field -->
+  <androidx.cardview.widget.CardView
+      android:id="@+id/usernameCard"
+      android:layout_width="0dp"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="50dp"
+      android:layout_marginStart="32dp"
+      android:layout_marginEnd="32dp"
+      android:backgroundTint="@android:color/white"
+      app:layout_constraintTop_toBottomOf="@id/tvAppName"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintEnd_toEndOf="parent"
+      app:cardCornerRadius="20dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+      <ImageView
+          android:id="@+id/ivUsernameIcon"
+          android:layout_width="30dp"
+          android:layout_height="30dp"
+          android:layout_margin="8dp"
+          android:src="@drawable/baseline_call_24"
+      app:layout_constraintTop_toTopOf="parent"
+      app:layout_constraintBottom_toBottomOf="parent"
+      app:layout_constraintStart_toStartOf="parent" />
+
+      <EditText
+          android:id="@+id/etUsername"
+          android:layout_width="0dp"
+          android:layout_height="wrap_content"
+          android:hint="User Name"
+          android:background="@null"
+          android:padding="12dp"
+          android:textColorHint="#999999"
+          app:layout_constraintTop_toTopOf="parent"
+          app:layout_constraintBottom_toBottomOf="parent"
+          app:layout_constraintStart_toEndOf="@id/ivUsernameIcon"
+          app:layout_constraintEnd_toEndOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+  </androidx.cardview.widget.CardView>
+
+  <!-- Password Input Field -->
+  <androidx.cardview.widget.CardView
+      android:id="@+id/passwordCard"
+      android:layout_width="0dp"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="16dp"
+      android:layout_marginStart="32dp"
+      android:layout_marginEnd="32dp"
+      android:backgroundTint="@android:color/white"
+      app:layout_constraintTop_toBottomOf="@id/usernameCard"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintEnd_toEndOf="parent"
+      app:cardCornerRadius="20dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+      <ImageView
+          android:id="@+id/ivPasswordIcon"
+          android:layout_width="30dp"
+          android:layout_height="30dp"
+          android:layout_margin="8dp"
+          android:src="@drawable/baseline_edit_24"
+      app:layout_constraintTop_toTopOf="parent"
+      app:layout_constraintBottom_toBottomOf="parent"
+      app:layout_constraintStart_toStartOf="parent" />
+
+      <EditText
+          android:id="@+id/etPassword"
+          android:layout_width="0dp"
+          android:layout_height="wrap_content"
+          android:hint="Password"
+          android:background="@null"
+          android:padding="12dp"
+          android:inputType="textPassword"
+          android:textColorHint="#999999"
+          app:layout_constraintTop_toTopOf="parent"
+          app:layout_constraintBottom_toBottomOf="parent"
+          app:layout_constraintStart_toEndOf="@id/ivPasswordIcon"
+          app:layout_constraintEnd_toEndOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+  </androidx.cardview.widget.CardView>
+
+  <!-- Login Button -->
+  <Button
+      android:id="@+id/btnLogin"
+      android:layout_width="0dp"
+      android:layout_height="50dp"
+      android:text="Login"
+      android:textSize="18sp"
+      android:textColor="@android:color/white"
+      android:backgroundTint="#42A5F5"
+      android:layout_marginTop="20dp"
+      app:layout_constraintTop_toBottomOf="@id/passwordCard"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintEnd_toEndOf="parent"
+      app:layout_constraintWidth_percent="0.6" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
