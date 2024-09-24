@@ -7,12 +7,22 @@
     android:background="#FFFFFF"
     tools:context=".ChatActivity">
 
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="63dp"
+        android:background="@color/normalColor"
+        app:titleTextColor="@color/white"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/constrain"
         android:layout_width="match_parent"
-        android:layout_height="70dp"
+        android:layout_height="wrap_content"
         android:background="@color/normalColor"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
@@ -20,39 +30,40 @@
             android:id="@+id/imageBack"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:layout_marginStart="19dp"
-            android:layout_marginTop="16dp"
             android:elevation="10dp"
             android:src="@drawable/left_back_arrow_icon"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
-            android:id="@+id/toolbar"
+            android:id="@+id/toolbarName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="71dp"
-            android:layout_marginTop="17.8dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginBottom="10dp"
             android:text="Tool"
             android:textColor="@color/white"
             android:textSize="25sp"
-            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/imageBack"
             app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
             android:id="@+id/onlineStatus"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="75dp"
+            android:layout_marginStart="16dp"
             android:text="Dummy Online"
             android:textColor="@color/white"
             android:textSize="10sp"
-            app:layout_constraintTop_toBottomOf="@+id/toolbar"
-            app:layout_constraintStart_toStartOf="parent"
-             />
+            app:layout_constraintStart_toEndOf="@+id/imageBack"
+            app:layout_constraintTop_toBottomOf="@+id/toolbarName" />
 
 
     </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.appcompat.widget.Toolbar>
 
     <LinearLayout
         android:layout_width="wrap_content"
@@ -63,7 +74,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.539"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/constrain"
+        app:layout_constraintTop_toBottomOf="@+id/toolbar"
         app:layout_constraintVertical_bias="0.0">
 
         <TextView
@@ -97,11 +108,10 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginBottom="56dp"
-        android:layout_marginTop="92dp"
+        android:layout_marginTop="85dp"
         app:layout_constraintEnd_toEndOf="parent"
-
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/constrain"
+        app:layout_constraintTop_toBottomOf="@+id/toolbar"
         tools:listitem="@layout/sendmessage" />
 
     <ProgressBar
@@ -139,6 +149,7 @@
             android:background="@drawable/normalbg"
             android:hint="Type a message..."
             android:paddingStart="20dp"
+            style="@style/CustomEditTextStyle"
             android:textColor="@color/black"
             android:textColorHint="#B5B5B5"
             android:textSize="20sp" />
