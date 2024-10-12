@@ -38,6 +38,9 @@
         android:theme="@style/Theme.LoginFirebase"
         tools:targetApi="31">
         <activity
+            android:name=".AiChat"
+            android:exported="false" />
+        <activity
             android:name=".Profile2"
             android:exported="false" />
         <activity
