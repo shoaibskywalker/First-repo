@@ -12,12 +12,15 @@ import com.test.loginfirebase.R
 
 import com.test.loginfirebase.data.User
 
-class UserAdapter(val context: Context, val  name : ArrayList<User>, private var filteredList: ArrayList<User>):RecyclerView.Adapter<UserAdapter.UserViewholder>() {
-
+class UserAdapter(
+    val context: Context,
+    val name: ArrayList<User>,
+    private var filteredList: ArrayList<User>
+) : RecyclerView.Adapter<UserAdapter.UserViewholder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): UserViewholder {
 
-        val view = LayoutInflater.from(context).inflate(R.layout.user_layout,parent,false)
+        val view = LayoutInflater.from(context).inflate(R.layout.user_layout, parent, false)
         return UserViewholder(view)
 
     }
@@ -28,28 +31,25 @@ class UserAdapter(val context: Context, val  name : ArrayList<User>, private var
     }
 
     override fun onBindViewHolder(holder: UserViewholder, position: Int) {
-
         val currentUser = filteredList[position]
-        holder.text.text=currentUser.name
+        holder.text.text = currentUser.name
 
         holder.itemView.setOnClickListener {
 
-            val intent = Intent(context,ChatActivity::class.java)
+            val intent = Intent(context, ChatActivity::class.java)
 
-            intent.putExtra("name",currentUser.name)
-            intent.putExtra("uid",currentUser.uid)
+            intent.putExtra("name", currentUser.name)
+            intent.putExtra("uid", currentUser.uid)
 
             context.startActivity(intent)
         }
-
-
-
     }
 
-    class UserViewholder(itemview: View):RecyclerView.ViewHolder(itemview) {
+    class UserViewholder(itemview: View) : RecyclerView.ViewHolder(itemview) {
 
         val text = itemview.findViewById<TextView>(R.id.txtName)
     }
+
     fun filterList(filteredList: ArrayList<User>) {
         this.filteredList = filteredList
         notifyDataSetChanged()
