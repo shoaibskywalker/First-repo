@@ -14,6 +14,7 @@ import android.text.TextWatcher
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -21,6 +22,7 @@ import androidx.core.content.ContextCompat
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
+import com.test.loginfirebase.databinding.ActivityLoginBinding
 import com.test.loginfirebase.utils.sessionManager.UserSessionManager
 
 class Login : AppCompatActivity() {
@@ -35,10 +37,12 @@ class Login : AppCompatActivity() {
 
     private lateinit var firebaseAuth: FirebaseAuth
     private lateinit var prefs: UserSessionManager
+    private lateinit var binding: ActivityLoginBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_login)
+        binding = ActivityLoginBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         prefs = UserSessionManager(this)
         firebaseAuth = FirebaseAuth.getInstance()
@@ -65,13 +69,10 @@ class Login : AppCompatActivity() {
 
 
         buttonLog.setOnClickListener { view ->
-
+            binding.progressBar.visibility = ProgressBar.VISIBLE
+            binding.buttonlog.visibility = View.GONE
             val mailBind = mailEt.text.toString()
             val passBind = passEt.text.toString()
-            prefs.userEmailLogin = mailBind
-            val userNameLogin = mailBind.substringBefore('@').replace(Regex("[0-9]"), "")
-
-            prefs.userNameLogin = userNameLogin
 
             if (isNetworkConnected()) {
                 if (mailBind.isNotEmpty() && passBind.isNotEmpty()) {
@@ -79,21 +80,26 @@ class Login : AppCompatActivity() {
                     firebaseAuth.signInWithEmailAndPassword(mailBind, passBind)
                         .addOnCompleteListener {
                             if (it.isSuccessful) {
+                                binding.progressBar.visibility = ProgressBar.GONE
+                                binding.buttonlog.visibility = View.VISIBLE
+                                prefs.userEmailLogin = mailBind
+                                val userNameLogin =
+                                    mailBind.substringBefore('@').replace(Regex("[0-9]"), "")
+                                        .replaceFirstChar { it.uppercase() }
+                                prefs.userNameLogin = userNameLogin
+
                                 showSnackbar(view, "Login Successfully")
                                 val intent = Intent(this, MainActivity::class.java)
                                 intent.flags =
                                     Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
-                                intent.putExtra("mail", mailBind)
-                                intent.putExtra("name",userNameLogin)
-
-                                intent.putExtra("source", "login")
                                 startActivity(intent)
                                 Toast.makeText(this, "Login Successfully", Toast.LENGTH_SHORT)
                                     .show()
 
                             } else {
                                 showSnackbar(view, "Incorrect Password")
-
+                                binding.progressBar.visibility = ProgressBar.GONE
+                                binding.buttonlog.visibility = View.VISIBLE
                                 vibrateTextField()
                                 passEt.shake()
                                 val passlayout: TextInputLayout = findViewById(R.id.passwordLayout)

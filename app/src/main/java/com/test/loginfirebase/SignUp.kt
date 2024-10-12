@@ -14,6 +14,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.test.loginfirebase.data.User
+import com.test.loginfirebase.databinding.ActivityMainBinding
+import com.test.loginfirebase.databinding.ActivitySignUpBinding
 import com.test.loginfirebase.utils.sessionManager.UserSessionManager
 
 class SignUp : AppCompatActivity() {
@@ -27,11 +29,13 @@ class SignUp : AppCompatActivity() {
     private lateinit var progressBar: ProgressBar
     private lateinit var databaseReference: DatabaseReference
     private lateinit var prefs: UserSessionManager
+    private lateinit var binding: ActivitySignUpBinding
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_sign_up)
+        binding = ActivitySignUpBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         prefs = UserSessionManager(this)
 
@@ -43,9 +47,11 @@ class SignUp : AppCompatActivity() {
         progressBar = findViewById(R.id.progress)
 
 firebaseAuth = FirebaseAuth.getInstance()
-        progressBar.visibility=View.GONE
+
 
         buttonSign.setOnClickListener{
+            binding.progress.visibility=ProgressBar.VISIBLE
+            binding.buttonsign.visibility = View.GONE
             val nameVar = name.text.toString()
             val emailVar = email.text.toString()
             val passVar = pass.text.toString()
@@ -58,6 +64,8 @@ firebaseAuth = FirebaseAuth.getInstance()
                 if (passVar == rePassVar){
                     firebaseAuth.createUserWithEmailAndPassword(emailVar,passVar).addOnCompleteListener {
                         if (it.isSuccessful){
+                            binding.progress.visibility=ProgressBar.GONE
+                            binding.buttonsign.visibility = View.VISIBLE
                             addUserinDatabase(name,email,firebaseAuth.currentUser?.uid!!)
                             buttonSign.visibility=View.GONE
                             progressBar.visibility=View.VISIBLE
@@ -69,6 +77,8 @@ firebaseAuth = FirebaseAuth.getInstance()
                             startActivity(intent)
                         }else{
                             Toast.makeText(this,it.exception.toString(),Toast.LENGTH_SHORT).show()
+                            binding.progress.visibility=ProgressBar.GONE
+                            binding.buttonsign.visibility = View.VISIBLE
                         }
                     }
                 }else{
