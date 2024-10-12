@@ -13,7 +13,7 @@
 <LinearLayout
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-
+    android:gravity="center_vertical"
     android:orientation="horizontal">
 
     <de.hdodenhof.circleimageview.CircleImageView
@@ -23,10 +23,16 @@
         android:layout_marginStart="8dp"
         android:src="@drawable/shoaib"/>
 
-    <de.hdodenhof.circleimageview.CircleImageView
+    <View
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:layout_weight="1" />
+
+    <ImageView
         android:id="@+id/headerArrowImage"
         android:layout_width="20dp"
         android:layout_height="20dp"
+        android:layout_marginEnd="17dp"
         android:layout_gravity="center_vertical"
         android:layout_marginStart="8dp"
         android:src="@drawable/baseline_arrow_forward_ios_24"/>
