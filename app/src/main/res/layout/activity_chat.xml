@@ -41,7 +41,7 @@
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:layout_marginStart="10dp"
-            android:src="@drawable/ic_placeholder"
+            android:src="@drawable/portrait_placeholder"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toEndOf="@id/imageBack"
             app:layout_constraintTop_toTopOf="parent" />

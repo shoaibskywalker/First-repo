@@ -27,6 +27,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -137,9 +138,17 @@ class ChatActivity : AppCompatActivity() {
         val receiverUid = intent.getStringExtra("uid")
         val senderUid = FirebaseAuth.getInstance().currentUser?.uid
         val name = intent.getStringExtra("name")
+        val imageUrl = intent.getStringExtra("imageUrl")
         val text = findViewById<TextView>(R.id.toolbarName).apply {
             text = name
         }
+
+            Glide.with(this)
+                .load(imageUrl)
+                .placeholder(R.drawable.portrait_placeholder)
+                .error(R.drawable.portrait_placeholder)
+                .into(binding.image) // Ensure this is the correct image view you're using
+
         listenForOnlineStatus(receiverUid)
 
         senderRoom = receiverUid + senderUid

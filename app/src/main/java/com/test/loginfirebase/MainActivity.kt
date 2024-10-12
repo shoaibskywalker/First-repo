@@ -35,6 +35,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.navigation.NavigationView
 import com.google.firebase.auth.FirebaseAuth
@@ -60,6 +61,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mAuth: FirebaseAuth
     private lateinit var currentUserRef: DatabaseReference
     private lateinit var databaseReference: DatabaseReference
+    private lateinit var databaseRef: DatabaseReference
     private lateinit var toggle: ActionBarDrawerToggle
     private lateinit var headerView: View
     private lateinit var headerNameTextView: TextView
@@ -164,16 +166,16 @@ class MainActivity : AppCompatActivity() {
             moveToProfile2Activity()
         }
 
-        val savedImage = prefs.getUserProfileImage(prefs.userEmailLogin)
+        /*val savedImage = prefs.getUserProfileImage(prefs.userEmailLogin)
         savedImage?.let {
             headerImageView.setImageBitmap(it)
-        }
+        }*/
 
-        Glide.with(this)
-            .load(savedImage) // Assuming prefs.userProfilePic is the image URL or URI
-            .placeholder(R.drawable.ic_placeholder) // Placeholder image resource
-            .error(R.drawable.ic_placeholder) // Error image resource
-            .into(headerImageView)
+        /* Glide.with(this)
+             .load(savedImage) // Assuming prefs.userProfilePic is the image URL or URI
+             .placeholder(R.drawable.ic_placeholder) // Placeholder image resource
+             .error(R.drawable.ic_placeholder) // Error image resource
+             .into(headerImageView)*/
         headerNameTextView.text = "Placeholder"
 
         emailLogin = prefs.userEmailLogin
@@ -232,6 +234,12 @@ class MainActivity : AppCompatActivity() {
 
         mAuth = FirebaseAuth.getInstance()
         databaseReference = FirebaseDatabase.getInstance().getReference()
+        databaseRef = FirebaseDatabase.getInstance().getReference("Users")
+
+        val currentUserId = mAuth.currentUser?.uid
+        currentUserId?.let { uid ->
+            loadProfileImageFromFirebase(uid)  // This loads the image when you re-enter the activity
+        }
         if (isNetworkConnected()) {
             userList = ArrayList()
             filterList = ArrayList()
@@ -481,6 +489,32 @@ class MainActivity : AppCompatActivity() {
     private fun moveToProfile2Activity() {
         startActivity(Intent(this, Profile2::class.java))
 
+    }
+
+    private fun loadProfileImageFromFirebase(uid: String?) {
+        uid?.let {
+            databaseRef.child(it).child("profileImageUrl").addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val imageUrl = snapshot.value as? String
+                    imageUrl?.let {
+                        Glide.with(this@MainActivity)
+                            .load(it)
+                            .placeholder(R.drawable.portrait_placeholder)
+                            .error(R.drawable.portrait_placeholder)
+                            .skipMemoryCache(true)  // Ensure it's not loading from cache
+                            .diskCacheStrategy(DiskCacheStrategy.NONE)  // Avoid disk caching
+                            .into(headerImageView)  // Load updated image
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e(
+                        "Main activity image upload",
+                        "Failed to listen for image URL changes: ${error.message}"
+                    )
+                }
+            })
+        }
     }
 
     private fun shareOurApp() {
