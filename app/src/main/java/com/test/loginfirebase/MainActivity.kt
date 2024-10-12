@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
@@ -27,12 +28,14 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.bumptech.glide.Glide
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.navigation.NavigationView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
@@ -69,6 +72,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var emailSignUp: String
     private lateinit var progressBar: ProgressBar
     private lateinit var batteryLevelReceiver: BatteryLevelReceiver
+    private var currentUserEmail: String? = null
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -77,6 +82,16 @@ class MainActivity : AppCompatActivity() {
         prefs = UserSessionManager(this)
 
         batteryLevelReceiver = BatteryLevelReceiver()
+        currentUserEmail = prefs.userEmailLogin
+
+        binding.fab.setOnClickListener{
+            moveToAiChat()
+        }
+
+        val fab: FloatingActionButton = findViewById(R.id.fab)
+        fab.backgroundTintList = ContextCompat.getColorStateList(this, R.color.normalColor)
+        fab.imageTintList = ContextCompat.getColorStateList(this, R.color.white)
+
 
         // Register the receiver for battery changes
         val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
@@ -93,8 +108,7 @@ class MainActivity : AppCompatActivity() {
         val nameSignUp = intent.getStringExtra("name")
         emailSignUp = intent.getStringExtra("email").toString()
         //login fetching name and email
-        emailLogin = intent.getStringExtra("mail").toString()
-        nameLogin = intent.getStringExtra("name").toString()
+
         val source = intent.getStringExtra("source")
 
         val toolbarName = findViewById<TextView>(R.id.toolbarNme)
@@ -144,24 +158,40 @@ class MainActivity : AppCompatActivity() {
         headerNameTextView = headerView.findViewById(R.id.shoaib)
         headerEmailTextView = headerView.findViewById(R.id.email)
         headerImageView = headerView.findViewById(R.id.imageView)
-        val headerArrowImage = headerView.findViewById<CircleImageView>(R.id.headerArrowImage)
+        val headerArrowImage = headerView.findViewById<ImageView>(R.id.headerArrowImage)
 
         headerArrowImage.setOnClickListener {
             moveToProfile2Activity()
         }
 
+        val savedImage = prefs.getUserProfileImage(prefs.userEmailLogin)
+        savedImage?.let {
+          headerImageView.setImageBitmap(it)
+        }
+
         Glide.with(this)
-            .load(prefs.userProfilePicture) // Assuming prefs.userProfilePic is the image URL or URI
+            .load(savedImage) // Assuming prefs.userProfilePic is the image URL or URI
             .placeholder(R.drawable.ic_placeholder) // Placeholder image resource
             .error(R.drawable.ic_placeholder) // Error image resource
             .into(headerImageView)
         headerNameTextView.text = "Placeholder"
 
-        if (source == "login") {
-            headerEmailTextView.text = emailLogin
-            headerNameTextView.text = nameLogin
+            emailLogin = prefs.userEmailLogin
+            nameLogin = prefs.userNameLogin.toString()
+            if (emailLogin.isNotEmpty()) {
+                headerEmailTextView.text = emailLogin
+                Log.d("Check", "Displayed email in header: $emailLogin") // Debug log
+            } else {
+                Log.d("Check", "No email found in SharedPreferences")
+            }
+            if (nameLogin.isNotEmpty()) {
+                headerNameTextView.text = nameLogin
+                Log.d("Check Name", "Displayed name in header: $nameLogin") // Debug log
+            } else {
+                Log.d("Check Name", "No name found in SharedPreferences")
+            }
 
-        } else if (source == "signup") {
+        if (source == "signup") {
             headerEmailTextView.text = emailSignUp
             headerNameTextView.text = nameSignUp
 
@@ -425,6 +455,9 @@ class MainActivity : AppCompatActivity() {
         buttonCancel.setOnClickListener {
             alertDialog.dismiss()
         }
+    }
+    private fun moveToAiChat() {
+        startActivity(Intent(this, AiChat::class.java))
     }
 
     private fun moveToAboutActivity() {
