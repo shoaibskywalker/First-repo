@@ -17,11 +17,10 @@ import com.google.firebase.auth.PhoneAuthProvider
 
 class Otp : AppCompatActivity() {
 
-    private lateinit var verificationId : String
+    private lateinit var verificationId: String
     private lateinit var firebaseAuth: FirebaseAuth
     private lateinit var progressBar: ProgressBar
-    private lateinit var resend : TextView
-
+    private lateinit var resend: TextView
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,8 +46,8 @@ class Otp : AppCompatActivity() {
 
         buttonotp.setOnClickListener {
 
-            progressBar.visibility=View.VISIBLE
-            buttonotp.visibility=View.GONE
+            progressBar.visibility = View.VISIBLE
+            buttonotp.visibility = View.GONE
 
             val otp1 = num1.text.toString().trim()
             val otp2 = num2.text.toString().trim()
@@ -61,29 +60,29 @@ class Otp : AppCompatActivity() {
                 Toast.makeText(this, "OTP verified", Toast.LENGTH_SHORT).show()
 
 
-                    val code = otp1+otp2+otp3+otp4+otp5+otp6
-                    val credential = PhoneAuthProvider.getCredential(verificationId, code)
+                val code = otp1 + otp2 + otp3 + otp4 + otp5 + otp6
+                val credential = PhoneAuthProvider.getCredential(verificationId, code)
                 FirebaseAuth.getInstance().signInWithCredential(credential).addOnCompleteListener {
 
-                    if (it.isSuccessful){
-                        progressBar.visibility=View.VISIBLE
-                        buttonotp.visibility=View.GONE
+                    if (it.isSuccessful) {
+                        progressBar.visibility = View.VISIBLE
+                        buttonotp.visibility = View.GONE
 
-                        val intent = Intent(this,MainActivity::class.java)
-                        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
+                        val intent = Intent(this, MainActivity::class.java)
+                        intent.flags =
+                            Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
                         startActivity(intent)
-                    }else{
-                        progressBar.visibility=View.GONE
-                        buttonotp.visibility=View.VISIBLE
+                    } else {
+                        progressBar.visibility = View.GONE
+                        buttonotp.visibility = View.VISIBLE
                         Toast.makeText(this, "Invalid OTP", Toast.LENGTH_SHORT).show()
                     }
                 }
 
 
-
             } else {
-                progressBar.visibility=View.GONE
-                buttonotp.visibility=View.VISIBLE
+                progressBar.visibility = View.GONE
+                buttonotp.visibility = View.VISIBLE
                 Toast.makeText(this, "Enter all number", Toast.LENGTH_SHORT).show()
 
             }

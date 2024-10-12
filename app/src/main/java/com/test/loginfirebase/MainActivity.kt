@@ -84,7 +84,7 @@ class MainActivity : AppCompatActivity() {
         batteryLevelReceiver = BatteryLevelReceiver()
         currentUserEmail = prefs.userEmailLogin
 
-        binding.fab.setOnClickListener{
+        binding.fab.setOnClickListener {
             moveToAiChat()
         }
 
@@ -166,7 +166,7 @@ class MainActivity : AppCompatActivity() {
 
         val savedImage = prefs.getUserProfileImage(prefs.userEmailLogin)
         savedImage?.let {
-          headerImageView.setImageBitmap(it)
+            headerImageView.setImageBitmap(it)
         }
 
         Glide.with(this)
@@ -176,20 +176,20 @@ class MainActivity : AppCompatActivity() {
             .into(headerImageView)
         headerNameTextView.text = "Placeholder"
 
-            emailLogin = prefs.userEmailLogin
-            nameLogin = prefs.userNameLogin.toString()
-            if (emailLogin.isNotEmpty()) {
-                headerEmailTextView.text = emailLogin
-                Log.d("Check", "Displayed email in header: $emailLogin") // Debug log
-            } else {
-                Log.d("Check", "No email found in SharedPreferences")
-            }
-            if (nameLogin.isNotEmpty()) {
-                headerNameTextView.text = nameLogin
-                Log.d("Check Name", "Displayed name in header: $nameLogin") // Debug log
-            } else {
-                Log.d("Check Name", "No name found in SharedPreferences")
-            }
+        emailLogin = prefs.userEmailLogin
+        nameLogin = prefs.userNameLogin.toString()
+        if (emailLogin.isNotEmpty()) {
+            headerEmailTextView.text = emailLogin
+            Log.d("Check", "Displayed email in header: $emailLogin") // Debug log
+        } else {
+            Log.d("Check", "No email found in SharedPreferences")
+        }
+        if (nameLogin.isNotEmpty()) {
+            headerNameTextView.text = nameLogin
+            Log.d("Check Name", "Displayed name in header: $nameLogin") // Debug log
+        } else {
+            Log.d("Check Name", "No name found in SharedPreferences")
+        }
 
         if (source == "signup") {
             headerEmailTextView.text = emailSignUp
@@ -456,6 +456,7 @@ class MainActivity : AppCompatActivity() {
             alertDialog.dismiss()
         }
     }
+
     private fun moveToAiChat() {
         startActivity(Intent(this, AiChat::class.java))
     }

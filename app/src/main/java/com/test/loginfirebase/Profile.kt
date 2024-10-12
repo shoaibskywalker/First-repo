@@ -44,7 +44,11 @@ class Profile : AppCompatActivity() {
         }
 
         val bagList = listOf(
-            BagList("https://firebasestorage.googleapis.com/v0/b/login-and-pass-firebase.appspot.com/o/101.jpg?alt=media&token=f222f972-666b-4c7d-95d7-fde5697f6002", "Tiranga", ""),
+            BagList(
+                "https://firebasestorage.googleapis.com/v0/b/login-and-pass-firebase.appspot.com/o/101.jpg?alt=media&token=f222f972-666b-4c7d-95d7-fde5697f6002",
+                "Tiranga",
+                ""
+            ),
             BagList(KHADI_CHAIN, "Khadi Chain", ""),
             BagList(WROGN, "Wrogn", ""),
             BagList(SAFARI, "Safari", ""),
@@ -54,43 +58,43 @@ class Profile : AppCompatActivity() {
             BagList(FOUR_NO, "Venture 4 Number", ""),
         )
 
-        adapter = BagAdapter(this,bagList)
+        adapter = BagAdapter(this, bagList)
         binding.bagListRecyclerView.layoutManager = LinearLayoutManager(this)
         binding.bagListRecyclerView.adapter = adapter
 
-       /* Glide.with(this).load(TIRANGA)
-            .into(binding.userImage)
+        /* Glide.with(this).load(TIRANGA)
+             .into(binding.userImage)
 
-        binding.userImage.setOnClickListener {
-            binding.showImage.visibility = View.VISIBLE
-            binding.showImage.alpha = 0f  // Set the initial alpha to 0 for the fade-in effect
+         binding.userImage.setOnClickListener {
+             binding.showImage.visibility = View.VISIBLE
+             binding.showImage.alpha = 0f  // Set the initial alpha to 0 for the fade-in effect
 
-            Glide.with(this)
-                .load(TIRANGA)
-                .into(binding.showImage)
+             Glide.with(this)
+                 .load(TIRANGA)
+                 .into(binding.showImage)
 
-            // Animate the alpha property to 1 (fully visible) over 500ms
-            binding.showImage.animate().alpha(1f).setDuration(300).start()
+             // Animate the alpha property to 1 (fully visible) over 500ms
+             binding.showImage.animate().alpha(1f).setDuration(300).start()
 
-            // Animate background color change smoothly over 500ms
-            binding.parentLayout.animate().setDuration(300).withStartAction {
-                binding.parentLayout.setBackgroundColor(Color.parseColor("#18181831"))
-            }.start()
-        }
+             // Animate background color change smoothly over 500ms
+             binding.parentLayout.animate().setDuration(300).withStartAction {
+                 binding.parentLayout.setBackgroundColor(Color.parseColor("#18181831"))
+             }.start()
+         }
 
-        binding.parentLayout.setOnClickListener {
-            if (binding.showImage.visibility == View.VISIBLE) {
-                // Fade out the image smoothly
-                binding.showImage.animate().alpha(0f).setDuration(500).withEndAction {
-                    binding.showImage.visibility = View.GONE
-                }.start()
+         binding.parentLayout.setOnClickListener {
+             if (binding.showImage.visibility == View.VISIBLE) {
+                 // Fade out the image smoothly
+                 binding.showImage.animate().alpha(0f).setDuration(500).withEndAction {
+                     binding.showImage.visibility = View.GONE
+                 }.start()
 
-                // Animate background color back to white
-                binding.parentLayout.animate().setDuration(500).withStartAction {
-                    binding.parentLayout.setBackgroundColor(Color.WHITE)
-                }.start()
-            }
-        }*/
+                 // Animate background color back to white
+                 binding.parentLayout.animate().setDuration(500).withStartAction {
+                     binding.parentLayout.setBackgroundColor(Color.WHITE)
+                 }.start()
+             }
+         }*/
 
 
     }

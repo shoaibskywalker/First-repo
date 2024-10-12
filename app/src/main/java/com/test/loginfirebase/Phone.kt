@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit
 
 class Phone : AppCompatActivity() {
 
-    private lateinit var mCallbacks : PhoneAuthProvider.OnVerificationStateChangedCallbacks
+    private lateinit var mCallbacks: PhoneAuthProvider.OnVerificationStateChangedCallbacks
     private lateinit var firebaseAuth: FirebaseAuth
     private lateinit var buttonOtp: Button
     private lateinit var textNumber: EditText
@@ -33,22 +33,22 @@ class Phone : AppCompatActivity() {
 
         firebaseAuth = FirebaseAuth.getInstance()
 
-         buttonOtp = findViewById(R.id.buttongetotp)
+        buttonOtp = findViewById(R.id.buttongetotp)
         textNumber = findViewById(R.id.phoneEtotp)
-      backNum = findViewById(R.id.backnum)
+        backNum = findViewById(R.id.backnum)
         progressBar = findViewById(R.id.progressPhone)
 
-        backNum.setOnClickListener{
+        backNum.setOnClickListener {
             finish()
         }
 
 
-        buttonOtp.setOnClickListener{
+        buttonOtp.setOnClickListener {
             val text = textNumber.text.trim().toString()
             if (text.isNotEmpty()) {
-               otpSend()
-            }else{
-                Toast.makeText(this,"Please enter Number",Toast.LENGTH_SHORT).show()
+                otpSend()
+            } else {
+                Toast.makeText(this, "Please enter Number", Toast.LENGTH_SHORT).show()
 
             }
         }
@@ -56,47 +56,50 @@ class Phone : AppCompatActivity() {
 
     private fun otpSend() {
 
-        progressBar.visibility=View.VISIBLE
-        buttonOtp.visibility=View.GONE
+        progressBar.visibility = View.VISIBLE
+        buttonOtp.visibility = View.GONE
 
         mCallbacks = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
 
 
-            override fun onVerificationCompleted(credential:PhoneAuthCredential) {
+            override fun onVerificationCompleted(credential: PhoneAuthCredential) {
 
             }
 
             override fun onVerificationFailed(e: FirebaseException) {
-                progressBar.visibility=View.GONE
-                buttonOtp.visibility=View.VISIBLE
-                Toast.makeText(this@Phone,e.localizedMessage,Toast.LENGTH_LONG).show()
+                progressBar.visibility = View.GONE
+                buttonOtp.visibility = View.VISIBLE
+                Toast.makeText(this@Phone, e.localizedMessage, Toast.LENGTH_LONG).show()
 
             }
 
             override fun onCodeSent(
                 verificationId: String,
-                token: PhoneAuthProvider.ForceResendingToken) {
+                token: PhoneAuthProvider.ForceResendingToken
+            ) {
 
                 val text = textNumber.text.trim().toString()
 
 
-                progressBar.visibility=View.GONE
-                buttonOtp.visibility=View.VISIBLE
+                progressBar.visibility = View.GONE
+                buttonOtp.visibility = View.VISIBLE
 
-                if (text.length ==10) {
+                if (text.length == 10) {
                     val intent = Intent(this@Phone, Otp::class.java)
-                    intent.putExtra("verificationId",verificationId)
+                    intent.putExtra("verificationId", verificationId)
                     startActivity(intent)
 
-                }else{
-                    Toast.makeText(this@Phone,"Please enter correct Number",Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this@Phone, "Please enter correct Number", Toast.LENGTH_SHORT)
+                        .show()
                 }
 
             }
         }
 
         val text = textNumber.text.trim().toString()
-        val formattedPhoneNumber = PhoneNumberUtils.formatNumberToE164(text, "IN") // "IN" is the country code for India
+        val formattedPhoneNumber =
+            PhoneNumberUtils.formatNumberToE164(text, "IN") // "IN" is the country code for India
         val options = PhoneAuthOptions.newBuilder(firebaseAuth)
             .setPhoneNumber(formattedPhoneNumber) // Phone number to verify
             .setTimeout(60L, TimeUnit.SECONDS) // Timeout and unit

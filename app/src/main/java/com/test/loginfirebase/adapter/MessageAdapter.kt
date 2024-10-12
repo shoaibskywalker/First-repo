@@ -25,11 +25,11 @@ class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) 
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
 
-        if (viewType==1){
-            val view = LayoutInflater.from(context).inflate(R.layout.receivemessage,parent,false)
+        if (viewType == 1) {
+            val view = LayoutInflater.from(context).inflate(R.layout.receivemessage, parent, false)
             return ReceiveViewHolder(view)
-        }else{
-            val view = LayoutInflater.from(context).inflate(R.layout.sendmessage,parent,false)
+        } else {
+            val view = LayoutInflater.from(context).inflate(R.layout.sendmessage, parent, false)
             return SendViewHolder(view)
         }
     }
@@ -43,7 +43,7 @@ class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) 
 
         return if (FirebaseAuth.getInstance().currentUser?.uid.equals(currentpossition.senderId)) {
             ITEM_SEND
-        }else{
+        } else {
             ITEM_RECEIVE
         }
     }
@@ -61,7 +61,7 @@ class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) 
                     it
                 )
             }?.let { DateFormat.getTimeInstance().format(it) }
-            viewHolder.itemView.setOnLongClickListener{
+            viewHolder.itemView.setOnLongClickListener {
                 onMessageLongClickListener!!.invoke(currentpossition)
                 true
             }
@@ -74,7 +74,7 @@ class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) 
                     it
                 )
             }?.let { DateFormat.getTimeInstance().format(it) }
-            viewHolderReceive.itemView.setOnLongClickListener{
+            viewHolderReceive.itemView.setOnLongClickListener {
                 onMessageLongClickListener!!.invoke(currentpossition)
                 true
             }

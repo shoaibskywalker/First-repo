@@ -28,11 +28,13 @@ class AiChatAdapter(
                     .inflate(R.layout.sendmessage, parent, false)
                 UserViewHolder(view)
             }
+
             VIEW_TYPE_BOT -> {
                 val view = LayoutInflater.from(parent.context)
                     .inflate(R.layout.receivemessage, parent, false)
                 BotViewHolder(view)
             }
+
             else -> throw IllegalArgumentException("Invalid view type")
         }
     }
@@ -46,6 +48,7 @@ class AiChatAdapter(
                 holder.userTV.text = modal.message
                 holder.timeSend.text = timeFormatted
             }
+
             is BotViewHolder -> {
                 holder.botTV.text = modal.message
                 holder.timeReceive.text = timeFormatted

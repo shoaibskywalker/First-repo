@@ -20,10 +20,10 @@ import com.test.loginfirebase.utils.sessionManager.UserSessionManager
 
 class SignUp : AppCompatActivity() {
 
-    private lateinit var name : EditText
-    private lateinit var email : EditText
-    private lateinit var pass : EditText
-    private lateinit var rePass : EditText
+    private lateinit var name: EditText
+    private lateinit var email: EditText
+    private lateinit var pass: EditText
+    private lateinit var rePass: EditText
     private lateinit var buttonSign: Button
     private lateinit var firebaseAuth: FirebaseAuth
     private lateinit var progressBar: ProgressBar
@@ -40,17 +40,17 @@ class SignUp : AppCompatActivity() {
         prefs = UserSessionManager(this)
 
         name = findViewById(R.id.nameEtsign)
-         email  = findViewById(R.id.emailEtsign)
-         pass  = findViewById(R.id.passETsign)
-         rePass  = findViewById(R.id.RePassETsign)
-         buttonSign  = findViewById(R.id.buttonsign)
+        email = findViewById(R.id.emailEtsign)
+        pass = findViewById(R.id.passETsign)
+        rePass = findViewById(R.id.RePassETsign)
+        buttonSign = findViewById(R.id.buttonsign)
         progressBar = findViewById(R.id.progress)
 
-firebaseAuth = FirebaseAuth.getInstance()
+        firebaseAuth = FirebaseAuth.getInstance()
 
 
-        buttonSign.setOnClickListener{
-            binding.progress.visibility=ProgressBar.VISIBLE
+        buttonSign.setOnClickListener {
+            binding.progress.visibility = ProgressBar.VISIBLE
             binding.buttonsign.visibility = View.GONE
             val nameVar = name.text.toString()
             val emailVar = email.text.toString()
@@ -60,33 +60,36 @@ firebaseAuth = FirebaseAuth.getInstance()
             prefs.userNameSignup = nameVar
             prefs.userEmailSignup = emailVar
 
-            if (nameVar.isNotEmpty() && emailVar.isNotEmpty() && passVar.isNotEmpty() && rePassVar.isNotEmpty()){
-                if (passVar == rePassVar){
-                    firebaseAuth.createUserWithEmailAndPassword(emailVar,passVar).addOnCompleteListener {
-                        if (it.isSuccessful){
-                            binding.progress.visibility=ProgressBar.GONE
-                            binding.buttonsign.visibility = View.VISIBLE
-                            addUserinDatabase(name,email,firebaseAuth.currentUser?.uid!!)
-                            buttonSign.visibility=View.GONE
-                            progressBar.visibility=View.VISIBLE
-                            val intent = Intent(this,MainActivity::class.java)
-                            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
-                            intent.putExtra("name", nameVar)
-                            intent.putExtra("email", emailVar)
-                            intent.putExtra("source", "signup")
-                            startActivity(intent)
-                        }else{
-                            Toast.makeText(this,it.exception.toString(),Toast.LENGTH_SHORT).show()
-                            binding.progress.visibility=ProgressBar.GONE
-                            binding.buttonsign.visibility = View.VISIBLE
+            if (nameVar.isNotEmpty() && emailVar.isNotEmpty() && passVar.isNotEmpty() && rePassVar.isNotEmpty()) {
+                if (passVar == rePassVar) {
+                    firebaseAuth.createUserWithEmailAndPassword(emailVar, passVar)
+                        .addOnCompleteListener {
+                            if (it.isSuccessful) {
+                                binding.progress.visibility = ProgressBar.GONE
+                                binding.buttonsign.visibility = View.VISIBLE
+                                addUserinDatabase(name, email, firebaseAuth.currentUser?.uid!!)
+                                buttonSign.visibility = View.GONE
+                                progressBar.visibility = View.VISIBLE
+                                val intent = Intent(this, MainActivity::class.java)
+                                intent.flags =
+                                    Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
+                                intent.putExtra("name", nameVar)
+                                intent.putExtra("email", emailVar)
+                                intent.putExtra("source", "signup")
+                                startActivity(intent)
+                            } else {
+                                Toast.makeText(this, it.exception.toString(), Toast.LENGTH_SHORT)
+                                    .show()
+                                binding.progress.visibility = ProgressBar.GONE
+                                binding.buttonsign.visibility = View.VISIBLE
+                            }
                         }
-                    }
-                }else{
-                    Toast.makeText(this,"Password is not matching",Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Password is not matching", Toast.LENGTH_SHORT).show()
                 }
 
-            }else{
-                Toast.makeText(this,"Your field is Empty",Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "Your field is Empty", Toast.LENGTH_SHORT).show()
             }
 
         }
@@ -100,16 +103,17 @@ firebaseAuth = FirebaseAuth.getInstance()
         val nameVar = name.text.toString()
         val emailVar = email.text.toString()
         databaseReference = FirebaseDatabase.getInstance().getReference()
-        databaseReference.child("User").child(nameVar).setValue(User(nameVar,emailVar,uid))
+        databaseReference.child("User").child(nameVar).setValue(User(nameVar, emailVar, uid))
 
     }
 
-    private fun setUpTextWatcher(){
-        name.addTextChangedListener(object :TextWatcher{
+    private fun setUpTextWatcher() {
+        name.addTextChangedListener(object : TextWatcher {
 
             override fun afterTextChanged(p0: Editable?) {
                 updateButton()
             }
+
             override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
             }
 
@@ -120,11 +124,12 @@ firebaseAuth = FirebaseAuth.getInstance()
         })
 
 
-        email.addTextChangedListener(object :TextWatcher{
+        email.addTextChangedListener(object : TextWatcher {
 
             override fun afterTextChanged(p0: Editable?) {
                 updateButton()
             }
+
             override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
             }
 
@@ -135,11 +140,12 @@ firebaseAuth = FirebaseAuth.getInstance()
         })
 
 
-        pass.addTextChangedListener(object :TextWatcher{
+        pass.addTextChangedListener(object : TextWatcher {
 
             override fun afterTextChanged(p0: Editable?) {
                 updateButton()
             }
+
             override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
             }
 
@@ -147,15 +153,15 @@ firebaseAuth = FirebaseAuth.getInstance()
             }
 
 
-
         })
 
 
-        rePass.addTextChangedListener(object :TextWatcher{
+        rePass.addTextChangedListener(object : TextWatcher {
 
             override fun afterTextChanged(p0: Editable?) {
                 updateButton()
             }
+
             override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
 
             }
@@ -169,8 +175,8 @@ firebaseAuth = FirebaseAuth.getInstance()
     }
 
 
-    private fun updateButton(){
-        val buttonSignn:Button  = findViewById(R.id.buttonsign)
+    private fun updateButton() {
+        val buttonSignn: Button = findViewById(R.id.buttonsign)
 
         val n = name.text.toString()
         val e = email.text.toString()

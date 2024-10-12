@@ -45,5 +45,4 @@ class BagAdapter(val context: Context, val bagList: List<BagList>) :
     class ViewHolder(val binding: BagListBinding) : RecyclerView.ViewHolder(binding.root)
 
 
-
 }

@@ -236,161 +236,162 @@ class ChatActivity : AppCompatActivity() {
         }
 
     }
-        private fun resetAddIconRotation() {
+
+    private fun resetAddIconRotation() {
+        addicon.rotation = 0f
+        isAddIconRotated = false
+    }
+
+    private fun rotateAddIcon() {
+        if (!isAddIconRotated) {
+            // Rotate the add icon by 45 degrees
+            addicon.rotation = 45f
+            isAddIconRotated = true
+        } else {
+            // Reset add icon rotation to its original position
             addicon.rotation = 0f
             isAddIconRotated = false
         }
 
-        private fun rotateAddIcon() {
-            if (!isAddIconRotated) {
-                // Rotate the add icon by 45 degrees
-                addicon.rotation = 45f
-                isAddIconRotated = true
+    }
+
+
+    private fun showDeleteDialog(message: Message) {
+        AlertDialog.Builder(this)
+            .setTitle("Delete Message")
+            .setMessage("Are you sure you want to delete this message?")
+            .setPositiveButton("Delete") { _, _ ->
+                // Delete the message
+                deleteMessage(message)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun deleteMessage(message: Message) {
+        val messageRef = databaseReference.child("chats").child(senderRoom!!)
+            .child("messages").child(message.messageId)
+
+        messageRef.removeValue().addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                messageList.remove(message)
+                adapter.notifyDataSetChanged()
+                Toast.makeText(this, "Message deleted", Toast.LENGTH_SHORT).show()
             } else {
-                // Reset add icon rotation to its original position
-                addicon.rotation = 0f
-                isAddIconRotated = false
+                Toast.makeText(this, "Failed to delete message", Toast.LENGTH_SHORT).show()
             }
-
-        }
-
-
-        private fun showDeleteDialog(message: Message) {
-            AlertDialog.Builder(this)
-                .setTitle("Delete Message")
-                .setMessage("Are you sure you want to delete this message?")
-                .setPositiveButton("Delete") { _, _ ->
-                    // Delete the message
-                    deleteMessage(message)
-                }
-                .setNegativeButton("Cancel", null)
-                .show()
-        }
-
-        private fun deleteMessage(message: Message) {
-            val messageRef = databaseReference.child("chats").child(senderRoom!!)
-                .child("messages").child(message.messageId)
-
-            messageRef.removeValue().addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    messageList.remove(message)
-                    adapter.notifyDataSetChanged()
-                    Toast.makeText(this, "Message deleted", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this, "Failed to delete message", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-
-        private fun scrollToBottom() {
-            recyclerView.scrollToPosition(adapter.itemCount - 1)
-        }
-
-        private fun listenForOnlineStatus(receiverUid: String?) {
-            val receiverUserRef =
-                FirebaseDatabase.getInstance().getReference().child("User").child(receiverUid!!)
-            receiverUserRef.child("online").addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val isOnline = snapshot.getValue(Boolean::class.java) ?: false
-
-                    if (isOnline) {
-
-                        val textViewOnlineStatus = findViewById<TextView>(R.id.onlineStatus)
-                        textViewOnlineStatus.text = "Online"
-                    } else {
-                        val textViewOnlineStatus = findViewById<TextView>(R.id.onlineStatus)
-                        textViewOnlineStatus.text = "Offline"
-                        /*if (lastSeenTimestamp != null) {
-                        val lastSeenTime = getTimeAgo(lastSeenTimestamp)
-                        textViewOnlineStatus.text = "Last seen $lastSeenTime"
-                    } else {
-                        textViewOnlineStatus.text = "Offline"
-                    }*/
-                    }
-                }
-
-                override fun onCancelled(error: DatabaseError) {
-                    // Handle onCancelled
-                }
-            })
-        }
-
-        private fun playMessageSound() {
-            // Check if MediaPlayer is initialized and not playing
-            mediaPlayer.let { player ->
-                if (!player.isPlaying) {
-                    player.start()
-                }
-            }
-        }
-
-        private fun getTimeAgo(timestamp: Long): String {
-            val now = System.currentTimeMillis()
-            val timeDifference = now - timestamp
-
-            val SECOND_MILLIS: Long = 1000
-            val MINUTE_MILLIS = 60 * SECOND_MILLIS
-            val HOUR_MILLIS = 60 * MINUTE_MILLIS
-            val DAY_MILLIS = 24 * HOUR_MILLIS
-
-            return when {
-                timeDifference < MINUTE_MILLIS -> "just now"
-                timeDifference < 2 * MINUTE_MILLIS -> "a minute ago"
-                timeDifference < 50 * MINUTE_MILLIS -> "${timeDifference / MINUTE_MILLIS} minutes ago"
-                timeDifference < 90 * MINUTE_MILLIS -> "an hour ago"
-                timeDifference < 24 * HOUR_MILLIS -> "${timeDifference / HOUR_MILLIS} hours ago"
-                timeDifference < 48 * HOUR_MILLIS -> "yesterday"
-                else -> "${timeDifference / DAY_MILLIS} days ago"
-            }
-        }
-
-
-        override fun onResume() {
-            super.onResume()
-            // Your existing code...
-        }
-
-        override fun onPause() {
-            super.onPause()
-            // Your existing code...
-        }
-
-        override fun onStop() {
-            super.onStop()
-            // Your existing code...
-        }
-
-        fun showPopupMenu(view: View) {
-            val popupMenu = PopupMenu(this, view)
-            popupMenu.menuInflater.inflate(R.menu.popmenuforimg, popupMenu.menu)
-            popupMenu.setOnMenuItemClickListener { menuItem ->
-                when (menuItem.itemId) {
-                    R.id.camera -> {
-                        // Handle menu item 1 click
-                        val intent = Intent(Intent.ACTION_PICK)
-                        intent.type = "image/*"
-                        startActivityForResult(intent, REQUEST_CODE_SELECT_IMAGE)
-                        true
-                    }
-
-                    R.id.gallery -> {
-                        // Handle menu item 2 click
-                        true
-                    }
-
-                    R.id.mic -> {
-                        // Handle menu item 2 click
-                        true
-                    }
-
-                    else -> false
-                }
-            }
-            // Use custom style to position the popup menu at the bottom of the screen
-            //   popupMenu.setStyle(R.style.PopupMenuBottomStyle)
-            popupMenu.show()
         }
     }
+
+    private fun scrollToBottom() {
+        recyclerView.scrollToPosition(adapter.itemCount - 1)
+    }
+
+    private fun listenForOnlineStatus(receiverUid: String?) {
+        val receiverUserRef =
+            FirebaseDatabase.getInstance().getReference().child("User").child(receiverUid!!)
+        receiverUserRef.child("online").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val isOnline = snapshot.getValue(Boolean::class.java) ?: false
+
+                if (isOnline) {
+
+                    val textViewOnlineStatus = findViewById<TextView>(R.id.onlineStatus)
+                    textViewOnlineStatus.text = "Online"
+                } else {
+                    val textViewOnlineStatus = findViewById<TextView>(R.id.onlineStatus)
+                    textViewOnlineStatus.text = "Offline"
+                    /*if (lastSeenTimestamp != null) {
+                    val lastSeenTime = getTimeAgo(lastSeenTimestamp)
+                    textViewOnlineStatus.text = "Last seen $lastSeenTime"
+                } else {
+                    textViewOnlineStatus.text = "Offline"
+                }*/
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                // Handle onCancelled
+            }
+        })
+    }
+
+    private fun playMessageSound() {
+        // Check if MediaPlayer is initialized and not playing
+        mediaPlayer.let { player ->
+            if (!player.isPlaying) {
+                player.start()
+            }
+        }
+    }
+
+    private fun getTimeAgo(timestamp: Long): String {
+        val now = System.currentTimeMillis()
+        val timeDifference = now - timestamp
+
+        val SECOND_MILLIS: Long = 1000
+        val MINUTE_MILLIS = 60 * SECOND_MILLIS
+        val HOUR_MILLIS = 60 * MINUTE_MILLIS
+        val DAY_MILLIS = 24 * HOUR_MILLIS
+
+        return when {
+            timeDifference < MINUTE_MILLIS -> "just now"
+            timeDifference < 2 * MINUTE_MILLIS -> "a minute ago"
+            timeDifference < 50 * MINUTE_MILLIS -> "${timeDifference / MINUTE_MILLIS} minutes ago"
+            timeDifference < 90 * MINUTE_MILLIS -> "an hour ago"
+            timeDifference < 24 * HOUR_MILLIS -> "${timeDifference / HOUR_MILLIS} hours ago"
+            timeDifference < 48 * HOUR_MILLIS -> "yesterday"
+            else -> "${timeDifference / DAY_MILLIS} days ago"
+        }
+    }
+
+
+    override fun onResume() {
+        super.onResume()
+        // Your existing code...
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Your existing code...
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Your existing code...
+    }
+
+    fun showPopupMenu(view: View) {
+        val popupMenu = PopupMenu(this, view)
+        popupMenu.menuInflater.inflate(R.menu.popmenuforimg, popupMenu.menu)
+        popupMenu.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.camera -> {
+                    // Handle menu item 1 click
+                    val intent = Intent(Intent.ACTION_PICK)
+                    intent.type = "image/*"
+                    startActivityForResult(intent, REQUEST_CODE_SELECT_IMAGE)
+                    true
+                }
+
+                R.id.gallery -> {
+                    // Handle menu item 2 click
+                    true
+                }
+
+                R.id.mic -> {
+                    // Handle menu item 2 click
+                    true
+                }
+
+                else -> false
+            }
+        }
+        // Use custom style to position the popup menu at the bottom of the screen
+        //   popupMenu.setStyle(R.style.PopupMenuBottomStyle)
+        popupMenu.show()
+    }
+}
 
 
 
