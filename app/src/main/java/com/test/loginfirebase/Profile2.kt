@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
+import android.view.View
 import android.widget.ProgressBar
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
@@ -20,7 +21,6 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
 import com.test.loginfirebase.databinding.ActivityProfile2Binding
-import com.test.loginfirebase.databinding.BagListBinding
 import com.test.loginfirebase.utils.sessionManager.UserSessionManager
 import java.io.ByteArrayOutputStream
 
@@ -33,6 +33,7 @@ class Profile2 : AppCompatActivity() {
     private lateinit var databaseReference: DatabaseReference
     private lateinit var storageReference: StorageReference
     private val firebaseAuth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
+    private var imageUrl: String? = null
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -101,6 +102,11 @@ class Profile2 : AppCompatActivity() {
             pickImageLauncher.launch(intent)
         }
         binding.emailProfile.text = userSessionManager.userEmailLogin
+        binding.image.setOnClickListener {
+            binding.fullimageview.visibility = View.VISIBLE
+            Glide.with(this).load(imageUrl).into(binding.fullimageview)
+        }
+
     }
 
     // Upload the image to Firebase Storage and store the URL in Firebase Realtime Database
@@ -119,7 +125,7 @@ class Profile2 : AppCompatActivity() {
             fileRef.downloadUrl.addOnSuccessListener { uri ->
                 val imageUrl = uri.toString()
                 // Save the image URL in Firebase Realtime Database
-                saveImageUrlToDatabase(userId, imageUrl)
+                saveImageUrlToDatabase(userId, imageUrl!!)
             }
         }.addOnFailureListener {
             Log.e("Firebase Storage", "Image upload failed: ${it.message}")
@@ -143,7 +149,7 @@ class Profile2 : AppCompatActivity() {
         uid?.let {
             databaseReference.child(it).child("profileImageUrl").get()
                 .addOnSuccessListener { snapshot ->
-                    val imageUrl = snapshot.value as? String
+                     imageUrl = snapshot.value as? String
                     imageUrl?.let {
                         binding.progressBar.visibility = ProgressBar.GONE
                         loadProfileImage(it)
