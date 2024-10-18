@@ -10,6 +10,8 @@
     <color name="normalColor">#6D0D50</color>
     <color name="yellow">#FFC801</color>
     <color name="red">#CD0E00</color>
+    <color name="fully_transparent">#00FFFFFF</color> <!-- Fully transparent -->
+
 
 
     <color name="disabledColor">#7983879C</color>

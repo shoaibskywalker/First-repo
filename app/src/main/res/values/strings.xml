@@ -4,5 +4,6 @@
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="open">Open</string>
     <string name="close">Close</string>
+    <string name="default_web_client_id">291965629998-3q6bl1li4t6kuj621lmkgn21oikeiqft.apps.googleusercontent.com</string>
 
 </resources>
