@@ -170,4 +170,16 @@
 
     </LinearLayout>
 
+
+    <ImageView
+        android:id="@+id/fullimageview"
+        android:layout_width="350dp"
+        android:layout_height="350dp"
+        android:visibility="gone"
+        android:src="@drawable/ic_placeholder"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
 </androidx.constraintlayout.widget.ConstraintLayout>
