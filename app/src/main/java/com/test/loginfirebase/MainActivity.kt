@@ -1,15 +1,11 @@
 package com.test.loginfirebase
 
-import android.Manifest
-import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.content.pm.PackageManager
 import android.net.ConnectivityManager
-import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.text.Editable
@@ -25,12 +21,10 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
-import androidx.core.app.ActivityCompat
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -44,6 +38,7 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import com.google.firebase.messaging.FirebaseMessaging
 import com.test.loginfirebase.adapter.UserAdapter
 import com.test.loginfirebase.broadcastReceiver.BatteryLevelReceiver
 import com.test.loginfirebase.data.User
@@ -76,6 +71,33 @@ class MainActivity : AppCompatActivity() {
     private lateinit var batteryLevelReceiver: BatteryLevelReceiver
     private var currentUserEmail: String? = null
 
+    private val unreadStatusReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            // When the broadcast is received, refresh the user list
+            mAdapter.notifyDataSetChanged() // This will force the UI to refresh
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+       // Refresh user list when returning to main activity
+        Log.d("TAG","On resume call")
+    }
+
+
+    override fun onStart() {
+        super.onStart()
+         // Refresh user list when returning to main activity
+        Log.d("TAG","On Start call")
+    }
+
+    override fun onRestart() {
+        super.onRestart()
+        // Refresh user list when returning to main activity
+        mAdapter.notifyDataSetChanged()
+        Log.d("TAG","On Restart call")
+    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -89,6 +111,10 @@ class MainActivity : AppCompatActivity() {
         binding.fab.setOnClickListener {
             moveToAiChat()
         }
+
+        // Cancel all notifications when the app is opened
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.cancelAll()
 
         val fab: FloatingActionButton = findViewById(R.id.fab)
         fab.backgroundTintList = ContextCompat.getColorStateList(this, R.color.normalColor)
@@ -105,7 +131,6 @@ class MainActivity : AppCompatActivity() {
         currentUserRef.child("online")
             .setValue(true) // Set online status to true when the app is opened
         currentUserRef.child("online").onDisconnect().setValue(false)
-        createNotificationChannel()
         //signup fetching name and email
         val nameSignUp = intent.getStringExtra("name")
         emailSignUp = intent.getStringExtra("email").toString()
@@ -140,6 +165,10 @@ class MainActivity : AppCompatActivity() {
             searchBar.text.clear()
 
         }
+
+        // Register a receiver to listen for broadcast updates
+        LocalBroadcastManager.getInstance(this).registerReceiver(unreadStatusReceiver, IntentFilter("update_user_list"))
+
 
         searchBar.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -273,10 +302,28 @@ class MainActivity : AppCompatActivity() {
                 }
 
             })
+
+            getFcmToken()
+
         } else {
             showDialog()
         }
 
+    }
+
+    private fun getFcmToken() {
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val token = task.result
+                // Save the token to Firebase Realtime Database or Firestore under the user's ID
+                Log.d("User token",token)
+                val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+                currentUserId?.let { uid ->
+                    FirebaseDatabase.getInstance().getReference("Users").child(uid)
+                        .child("fcmToken").setValue(token)
+                }
+            }
+        }
     }
 
     private fun refreshScreen() {
@@ -367,56 +414,6 @@ class MainActivity : AppCompatActivity() {
         Toast.makeText(this@MainActivity, "Log out Successfully", Toast.LENGTH_LONG).show()
     }
 
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "ELA"
-            val descriptionText = "Some message"
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel("1234", name, importance).apply {
-                description = descriptionText
-            }
-            // Register the channel with the system
-            val notificationManager: NotificationManager =
-                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
-        }
-    }
-
-    private fun sendNotification(receiverId: String, message: String) {
-        val intent = Intent(this, ChatActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            putExtra("uid", receiverId)
-        }
-        val pendingIntent: PendingIntent =
-            PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_MUTABLE)
-
-        val builder = NotificationCompat.Builder(this, "1234")
-            .setSmallIcon(R.drawable.baseline_keyboard_backspace_24)
-            .setContentTitle("ELA Chat")
-            .setContentText(message)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setContentIntent(pendingIntent)
-            .setAutoCancel(true)
-
-        with(NotificationManagerCompat.from(this)) {
-            // notificationId is a unique int for each notification that you must define
-            if (ActivityCompat.checkSelfPermission(
-                    this@MainActivity,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                // TODO: Consider calling
-                //    ActivityCompat#requestPermissions
-                // here to request the missing permissions, and then overriding
-                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                //                                          int[] grantResults)
-                // to handle the case where the user grants the permission. See the documentation
-                // for ActivityCompat#requestPermissions for more details.
-                return
-            }
-            notify(1, builder.build())
-        }
-    }
 
     private fun showRatingDialog() {
         val dialogView = layoutInflater.inflate(R.layout.rating_bar, null)
@@ -493,27 +490,28 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadProfileImageFromFirebase(uid: String?) {
         uid?.let {
-            databaseRef.child(it).child("profileImageUrl").addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val imageUrl = snapshot.value as? String
-                    imageUrl?.let {
-                        Glide.with(this@MainActivity)
-                            .load(it)
-                            .placeholder(R.drawable.portrait_placeholder)
-                            .error(R.drawable.portrait_placeholder)
-                            .skipMemoryCache(true)  // Ensure it's not loading from cache
-                            .diskCacheStrategy(DiskCacheStrategy.NONE)  // Avoid disk caching
-                            .into(headerImageView)  // Load updated image
+            databaseRef.child(it).child("profileImageUrl")
+                .addValueEventListener(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        val imageUrl = snapshot.value as? String
+                        imageUrl?.let {
+                            Glide.with(this@MainActivity)
+                                .load(it)
+                                .placeholder(R.drawable.portrait_placeholder)
+                                .error(R.drawable.portrait_placeholder)
+                                .skipMemoryCache(true)  // Ensure it's not loading from cache
+                                .diskCacheStrategy(DiskCacheStrategy.NONE)  // Avoid disk caching
+                                .into(headerImageView)  // Load updated image
+                        }
                     }
-                }
 
-                override fun onCancelled(error: DatabaseError) {
-                    Log.e(
-                        "Main activity image upload",
-                        "Failed to listen for image URL changes: ${error.message}"
-                    )
-                }
-            })
+                    override fun onCancelled(error: DatabaseError) {
+                        Log.e(
+                            "Main activity image upload",
+                            "Failed to listen for image URL changes: ${error.message}"
+                        )
+                    }
+                })
         }
     }
 
@@ -541,5 +539,7 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         // Unregister the receiver when the activity is destroyed
         unregisterReceiver(batteryLevelReceiver)
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(unreadStatusReceiver)
+
     }
 }
