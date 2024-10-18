@@ -1,7 +1,5 @@
 package com.test.loginfirebase
 
-import android.animation.Animator
-import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -9,21 +7,20 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Rect
 import android.media.MediaPlayer
-import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.view.ViewTreeObserver
 import android.view.animation.AccelerateDecelerateInterpolator
-import android.view.animation.AnimationUtils
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.PopupMenu
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
-import android.widget.Toolbar
 import androidx.appcompat.app.AlertDialog
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -34,15 +31,25 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
-import com.google.firebase.storage.FirebaseStorage
 import com.test.loginfirebase.adapter.MessageAdapter
-import com.test.loginfirebase.adapter.UserAdapter
-import com.test.loginfirebase.data.Message
+import com.test.loginfirebase.apiInterface.NotificationApiService
+import com.test.loginfirebase.data.model.Messagee
+import com.test.loginfirebase.data.model.Notification
+import com.test.loginfirebase.data.model.NotificationRequest
 import com.test.loginfirebase.databinding.ActivityChatBinding
+import com.test.loginfirebase.fcm.ServerToken
+import com.test.loginfirebase.fcm.getReceiverFcmToken
+import com.test.loginfirebase.utils.sessionManager.UserSessionManager
 import de.hdodenhof.circleimageview.CircleImageView
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import com.test.loginfirebase.data.Message as Message1
 
 class ChatActivity : AppCompatActivity() {
 
@@ -51,15 +58,19 @@ class ChatActivity : AppCompatActivity() {
     private lateinit var imageView: CircleImageView
     private lateinit var editText: EditText
     private lateinit var adapter: MessageAdapter
-    private lateinit var messageList: ArrayList<Message>
+    private lateinit var messageList: ArrayList<Message1>
     lateinit var databaseReference: DatabaseReference
     lateinit var imageBack: ImageView
     private lateinit var mediaPlayer: MediaPlayer
+    private lateinit var prefs: UserSessionManager
     private lateinit var addicon: ImageView
     private var isKeyboardOpen = false
     private val REQUEST_CODE_SELECT_IMAGE = 1
     private var isAddIconRotated = false
     private lateinit var rotationAnimator: ObjectAnimator
+    private lateinit var realAccessToken: String
+    private var receiverUid: String? = null  // Store userId
+
 
     var senderRoom: String? = null
     var receiverRoom: String? = null
@@ -78,6 +89,8 @@ class ChatActivity : AppCompatActivity() {
         super.onDestroy()
         // Unregister the broadcast receiver
         unregisterReceiver(messageSentReceiver)
+        prefs.removeNotificationSenderUid()
+        prefs.markUserAsRead(receiverUid!!)  // Remove the user from unread list
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -95,6 +108,20 @@ class ChatActivity : AppCompatActivity() {
         // Find the TextViews in your layout
         val textViewDay = findViewById<TextView>(R.id.textViewDay)
         val textViewDate = findViewById<TextView>(R.id.textViewDate)
+
+        //initialize shared preference
+        prefs = UserSessionManager(this)
+        // Using a Coroutine to call the network operation
+        lifecycleScope.launch {
+            try {
+                val serverToken = ServerToken(this@ChatActivity)
+                realAccessToken = serverToken.getServerToken()
+
+                Log.d("Server Token", realAccessToken!!)
+            } catch (e: Exception) {
+                Log.e("Error", "Failed to get server token: ${e.message}")
+            }
+        }
 
         val filter = IntentFilter("MESSAGE_SENT")
         registerReceiver(messageSentReceiver, filter)
@@ -132,10 +159,32 @@ class ChatActivity : AppCompatActivity() {
             showPopupMenu(it)
         }
 
+        // Retrieve data from the intent
+        val receiverUidFromPendingIntent = intent.getStringExtra("receiverUid")
+        val receiverName = intent.getStringExtra("receiverName")
+        val message = intent.getStringExtra("message")
+        val senderName = intent.getStringExtra("senderName")
+        val senderUidd = intent.getStringExtra("senderUid")
+
+
+
+        // Log the received data
+        Log.d("ChatActivity", "Receiver UID: $receiverUidFromPendingIntent")
+        Log.d("ChatActivity", "Receiver Name: $receiverName")
+        Log.d("ChatActivity", "Message: $message")
+        Log.d("ChatActivity", "Sender Name: $senderName")
+        Log.d("ChatActivity", "Sender Uid: $senderUidd")
+
+
+        val extras = intent.extras
+        extras?.keySet()?.forEach { key ->
+            Log.d("ChatActivity Extra", "Key: $key, Value: ${extras.get(key)}")
+        }
+
 
         databaseReference = FirebaseDatabase.getInstance().getReference()
 
-        val receiverUid = intent.getStringExtra("uid")
+         receiverUid = intent.getStringExtra("uid")
         val senderUid = FirebaseAuth.getInstance().currentUser?.uid
         val name = intent.getStringExtra("name")
         val imageUrl = intent.getStringExtra("imageUrl")
@@ -143,13 +192,17 @@ class ChatActivity : AppCompatActivity() {
             text = name
         }
 
-            Glide.with(this)
-                .load(imageUrl)
-                .placeholder(R.drawable.portrait_placeholder)
-                .error(R.drawable.portrait_placeholder)
-                .into(binding.image) // Ensure this is the correct image view you're using
+        prefs.notificationSenderUid = receiverUid
+        Log.d("check receiver Uid", "Receiver Uid: ${prefs.notificationSenderUid}")
 
-        listenForOnlineStatus(receiverUid)
+
+        Glide.with(this)
+            .load(imageUrl)
+            .placeholder(R.drawable.portrait_placeholder)
+            .error(R.drawable.portrait_placeholder)
+            .into(binding.image) // Ensure this is the correct image view you're using
+
+        //listenForOnlineStatus(receiverUid)
 
         senderRoom = receiverUid + senderUid
         receiverRoom = senderUid + receiverUid
@@ -172,7 +225,7 @@ class ChatActivity : AppCompatActivity() {
 
                     for (postss in snapshot.children) {
 
-                        val message = postss.getValue(Message::class.java)
+                        val message = postss.getValue(Message1::class.java)
                         message?.messageId = postss.key ?: ""
                         messageList.add(message!!)
                     }
@@ -215,7 +268,7 @@ class ChatActivity : AppCompatActivity() {
         imageView.setOnClickListener {
 
             val text = editText.text.toString().trim()
-            val messageObject = Message(text, senderUid)
+            val messageObject = Message1(text, senderUid)
 
             if (text.isNotEmpty()) {
                 databaseReference.child("chats")
@@ -231,7 +284,18 @@ class ChatActivity : AppCompatActivity() {
                             .child(receiverRoom!!)
                             .child("messages").push()
                             .setValue(messageObject).addOnSuccessListener {
+                                getReceiverFcmToken(receiverUid!!) { token ->
 
+                                    sendNotificationToReceiver(
+                                        receiverToken = token,
+                                        message = text,
+                                        senderName = prefs.userNameLogin!!,
+                                        receiverUid = receiverUid!!,
+                                        receiverName = name!!,
+                                        senderUid = senderUid!!
+                                    )
+                                    println(senderUid.toString())
+                                }
                             }
                     }
                 editText.text.clear()
@@ -244,6 +308,83 @@ class ChatActivity : AppCompatActivity() {
             showDeleteDialog(message)
         }
 
+    }
+
+    private fun initializeChat(receiverUid: String, name: String, message: String) {
+        // Initialize chat with the provided receiverUid and name
+        // You can display the message or update the UI accordingly
+        // For example, display the message in the chat list
+        val messageObject = Message1(message, FirebaseAuth.getInstance().currentUser?.uid)
+        messageList.add(messageObject) // Add the message to the list
+        adapter.notifyDataSetChanged() // Update the adapter
+        scrollToBottom() // Scroll to the bottom of the chat
+    }
+
+
+    private fun sendNotificationToReceiver(
+        receiverToken: String,
+        message: String,
+        senderName: String,
+        receiverUid: String,
+        receiverName: String,
+        senderUid: String
+    ) {
+        val notification = Notification(
+            title = senderName,
+            body = message,
+        )
+
+        // Create a data payload with senderUid
+        val dataPayload = mapOf(
+            "receiverUid" to receiverUid,
+            "receiverName" to receiverName,
+            "message" to message,
+            "senderName" to senderName,
+            "senderUid" to senderUid,
+
+        )
+
+        val messageObj = Messagee(
+            token = receiverToken,
+            notification = notification,
+            data = dataPayload as Map<String, String>
+        )
+
+        val notificationRequest = NotificationRequest(message = messageObj)
+
+        val apiService = Retrofit.Builder()
+            .baseUrl("https://fcm.googleapis.com/v1/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(NotificationApiService::class.java)
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val response =
+                    apiService.sendNotification("Bearer $realAccessToken", notificationRequest)
+                if (response.isSuccessful) {
+                    // Notification sent successfully
+                    Log.d("Notification Response", response.body().toString())
+
+                    runOnUiThread {
+                        Toast.makeText(this@ChatActivity, "Notification sent", Toast.LENGTH_SHORT)
+                            .show()
+                    }
+                } else {
+                    Log.e("Notification Error", response.errorBody()?.string() ?: "Unknown error")
+                    // Handle error
+                    runOnUiThread {
+                        Toast.makeText(
+                            this@ChatActivity,
+                            "Failed to send notification",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     private fun resetAddIconRotation() {
@@ -265,7 +406,7 @@ class ChatActivity : AppCompatActivity() {
     }
 
 
-    private fun showDeleteDialog(message: Message) {
+    private fun showDeleteDialog(message: Message1) {
         AlertDialog.Builder(this)
             .setTitle("Delete Message")
             .setMessage("Are you sure you want to delete this message?")
@@ -277,7 +418,7 @@ class ChatActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun deleteMessage(message: Message) {
+    private fun deleteMessage(message: Message1) {
         val messageRef = databaseReference.child("chats").child(senderRoom!!)
             .child("messages").child(message.messageId)
 
@@ -297,9 +438,13 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun listenForOnlineStatus(receiverUid: String?) {
+        if (receiverUid == null) {
+            Log.d("receiver uid check","receiver uid is NULL")
+
+        }
         val receiverUserRef =
-            FirebaseDatabase.getInstance().getReference().child("User").child(receiverUid!!)
-        receiverUserRef.child("online").addValueEventListener(object : ValueEventListener {
+            receiverUid?.let { FirebaseDatabase.getInstance().getReference().child("User").child(it) }
+        receiverUserRef?.child("online")?.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val isOnline = snapshot.getValue(Boolean::class.java) ?: false
 
