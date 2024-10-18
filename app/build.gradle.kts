@@ -38,6 +38,14 @@ android {
     buildFeatures{
         viewBinding = true
     }
+
+    packagingOptions {
+        exclude ("META-INF/DEPENDENCIES")
+        exclude ("META-INF/LICENSE")
+        exclude ("META-INF/LICENSE.txt")
+        exclude ("META-INF/NOTICE")
+        exclude ("META-INF/NOTICE.txt")
+    }
 }
 
 dependencies {
@@ -55,6 +63,9 @@ dependencies {
     implementation("androidx.activity:activity:1.8.0")
     implementation ("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     implementation("com.google.firebase:firebase-storage-ktx:21.0.0")
+    implementation("com.google.firebase:firebase-messaging:24.0.2")
+    implementation("androidx.drawerlayout:drawerlayout:1.2.0")
+    implementation("com.google.firebase:firebase-appdistribution-gradle:5.0.0")
     testImplementation("junit:junit:4.13.2")
     implementation ("com.github.bumptech.glide:glide:4.12.0")
     annotationProcessor ("com.github.bumptech.glide:compiler:4.12.0")
@@ -68,4 +79,10 @@ dependencies {
     implementation ("androidx.room:room-runtime:2.5.0")
     annotationProcessor ("androidx.room:room-compiler:2.5.0")
     implementation ("androidx.room:room-ktx:2.5.0")
+    implementation ("com.google.android.gms:play-services-auth:20.6.0")
+    implementation ("com.google.auth:google-auth-library-oauth2-http:1.2.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
+
+
 }
