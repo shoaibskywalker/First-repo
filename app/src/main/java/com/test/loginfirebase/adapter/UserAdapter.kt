@@ -19,6 +19,7 @@ import com.test.loginfirebase.ChatActivity
 import com.test.loginfirebase.R
 
 import com.test.loginfirebase.data.User
+import com.test.loginfirebase.utils.sessionManager.UserSessionManager
 import de.hdodenhof.circleimageview.CircleImageView
 
 class UserAdapter(
@@ -38,7 +39,7 @@ class UserAdapter(
         currentUserId = firebaseAuth.currentUser?.uid
 
         val view = LayoutInflater.from(context).inflate(R.layout.user_layout, parent, false)
-        return UserViewholder(view)
+        return UserViewholder(context,view)
 
     }
 
@@ -78,6 +79,8 @@ class UserAdapter(
                 })
         }
 
+holder.bind(currentUser)
+
         holder.itemView.setOnClickListener {
 
             val intent = Intent(context, ChatActivity::class.java)
@@ -90,19 +93,31 @@ class UserAdapter(
         }
     }
 
-    class UserViewholder(itemview: View) : RecyclerView.ViewHolder(itemview) {
+    class UserViewholder(context: Context,itemview: View) : RecyclerView.ViewHolder(itemview) {
+
+        private val prefs: UserSessionManager by lazy {
+            UserSessionManager(context)
+        }
 
         val text = itemview.findViewById<TextView>(R.id.txtName)
         var userImage = itemview.findViewById<CircleImageView>(R.id.imageProfile)
+        private val greenDotView: View = itemView.findViewById(R.id.greenDotView)
+
+
+        fun bind(user: User) {
+            // Check if this user has an unread message and show the green dot if true
+            val unreadUsers = prefs.getUnreadUsers(itemView.context)
+            if (unreadUsers.contains(user.uid)) {
+                greenDotView.visibility = View.VISIBLE
+            } else {
+                greenDotView.visibility = View.GONE
+            }
+        }
     }
 
     fun filterList(filteredList: ArrayList<User>) {
         this.filteredList = filteredList
         notifyDataSetChanged()
-    }
-
-    private fun loadProfileImageFromFirebase(uid: String?) {
-
     }
 
 }
