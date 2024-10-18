@@ -17,23 +17,24 @@ class UserSessionManager
 
     private val prefEditor: SharedPreferences.Editor = prefs.edit()
 
+    fun addUnreadUser(context: Context, userId: String) {
+        val unreadUsers = prefs.getStringSet("KEY_UNREAD_USERS", mutableSetOf())?.toMutableSet()
+        unreadUsers?.add(userId)
+        prefEditor.putStringSet("KEY_UNREAD_USERS", unreadUsers).apply()
+    }
+
+    fun markUserAsRead(userId: String) {
+        val unreadUsers = prefs.getStringSet("KEY_UNREAD_USERS", mutableSetOf())?.toMutableSet()
+        unreadUsers?.remove(userId)
+        prefEditor.putStringSet("KEY_UNREAD_USERS", unreadUsers).apply()
+    }
+
+
+    fun getUnreadUsers(context: Context): Set<String> {
+        return prefs.getStringSet("KEY_UNREAD_USERS", mutableSetOf()) ?: mutableSetOf()
+    }
+
     // Method to save the image as a Base64 string in SharedPreferences
-    fun saveUserProfileImage(bitmap: Bitmap) {
-        val byteArrayOutputStream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream)
-        val byteArray = byteArrayOutputStream.toByteArray()
-        val encodedImage = Base64.encodeToString(byteArray, Base64.DEFAULT)
-        prefEditor.putString("profilePicture", encodedImage)
-        prefEditor.apply()
-    }
-
-
-    // Method to retrieve the image as a Bitmap from SharedPreferences
-    fun getUserProfileImage(): Bitmap? {
-        val encodedImage = prefs.getString("profilePicture", null) ?: return null
-        val byteArray = Base64.decode(encodedImage, Base64.DEFAULT)
-        return BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
-    }
 
     fun saveUserProfileImage(userEmail: String, bitmap: Bitmap) {
         val baos = ByteArrayOutputStream()
@@ -84,6 +85,18 @@ class UserSessionManager
             prefEditor.putString("userNameLogin", userName)
             prefEditor.apply()
         }
+
+    var notificationSenderUid: String?
+        get() = prefs.getString("notificationSenderUid", null)
+        set(notificationSenderUid) {
+            prefEditor.putString("notificationSenderUid", notificationSenderUid)
+            prefEditor.apply()
+        }
+
+    fun removeNotificationSenderUid() {
+        prefEditor.remove("notificationSenderUid")
+        prefEditor.apply()
+    }
 
     fun saveString(key: String, value: String) {
         val editor = prefs.edit()
