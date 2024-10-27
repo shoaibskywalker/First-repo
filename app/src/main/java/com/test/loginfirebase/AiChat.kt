@@ -4,12 +4,23 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.ProgressBar
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.ai.client.generativeai.GenerativeModel
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import com.test.loginfirebase.adapter.AiChatAdapter
 import com.test.loginfirebase.data.AiMessage
+import com.test.loginfirebase.data.Message
 import com.test.loginfirebase.databinding.ActivityAiChatBinding
+import com.test.loginfirebase.utils.CommonUtil
+import com.test.loginfirebase.utils.FirebaseUtil
+import com.test.loginfirebase.utils.sessionManager.UserSessionManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -18,8 +29,9 @@ import kotlinx.coroutines.withContext
 class AiChat : AppCompatActivity() {
 
     private lateinit var binding: ActivityAiChatBinding
-
+    private lateinit var chatRef: DatabaseReference
     private lateinit var chatAdapter: AiChatAdapter
+    private lateinit var prefs: UserSessionManager
     private val messageList = ArrayList<AiMessage>()
     var API_KEY = "AIzaSyDooL54T34k0lBf4vcmOTHQRDCAoSCN91s"
 
@@ -28,28 +40,40 @@ class AiChat : AppCompatActivity() {
         binding = ActivityAiChatBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        prefs = UserSessionManager(this)
+
+        // Firebase reference to store chats
+        val currentUserName = prefs.userNameLogin
+        val currentUid = FirebaseUtil().currentUserId()
+        chatRef = FirebaseDatabase.getInstance().getReference("AiChats").child(currentUserName!!)
+            .child(currentUid!!).child("messages")
+
+
         chatAdapter = AiChatAdapter(messageList, this)
         binding.recyclerChat.adapter = chatAdapter
         binding.recyclerChat.layoutManager = LinearLayoutManager(this)
 
         binding.onlineStatus.text = "Gemini 0.2.0"
-
-        binding.progressBar.visibility = ProgressBar.GONE
-
         binding.imageBack.setOnClickListener {
             finish()
         }
 
+        loadMessagesFromFirebase()
+        binding.deleteImage.setOnClickListener {
+
+            showDeleteDialog(currentUserName = currentUserName, currentUid = currentUid)
+        }
         binding.sendMessageBtn.setOnClickListener {
             val userMessage = binding.typeMessage.text.toString().trim()
 
             if (userMessage.isNotEmpty()) {
-                binding.progressBar.visibility = ProgressBar.VISIBLE
+
                 addMessageToChat(userMessage, isUser = true)
                 callGeminiApi(userMessage)
 
             } else {
-                Toast.makeText(this, "Please enter a message", Toast.LENGTH_SHORT).show()
+               // Toast.makeText(this, "Please enter a message", Toast.LENGTH_SHORT).show()
+                CommonUtil.showToastMessage(this,"Please enter a message")
             }
 
             binding.typeMessage.text.clear()
@@ -57,6 +81,9 @@ class AiChat : AppCompatActivity() {
     }
 
     private fun callGeminiApi(prompt: String) {
+
+        binding.progressBar.visibility = ProgressBar.VISIBLE
+
         val generativeModel = GenerativeModel(
             modelName = "gemini-pro",
             apiKey = API_KEY
@@ -67,26 +94,112 @@ class AiChat : AppCompatActivity() {
                 val response = generativeModel.generateContent(prompt)
                 withContext(Dispatchers.Main) {
                     addMessageToChat(response.text ?: "No response", isUser = false)
-                    binding.progressBar.visibility = ProgressBar.GONE
                     Log.d("AI says :-", response.text.toString())
+                    binding.progressBar.visibility = ProgressBar.GONE
+
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@AiChat, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
                     binding.progressBar.visibility = ProgressBar.GONE
+
+                   // Toast.makeText(this@AiChat, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                    CommonUtil.showToastMessage(this@AiChat,"Error: ${e.message}")
+
                 }
             }
         }
     }
+    private fun showDeleteDialog(currentUserName: String, currentUid: String) {
+        AlertDialog.Builder(this)
+            .setTitle("Delete Message")
+            .setMessage("Are you sure you want to delete this message?")
+            .setPositiveButton("Delete") { _, _ ->
+                // Delete the message
+                deleteMessage(currentUserName, currentUid)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
 
     private fun addMessageToChat(message: String, isUser: Boolean) {
         val sender = if (isUser) "user" else "bot"
-        val messageObject = AiMessage(message, sender, System.currentTimeMillis())
+        val timestamp = System.currentTimeMillis()
+        val datestamp = System.currentTimeMillis()
+        val messageObject = AiMessage(message, sender, timestamp, datestamp)
         messageList.add(messageObject)
         chatAdapter.notifyItemInserted(messageList.size - 1)
         binding.recyclerChat.scrollToPosition(messageList.size - 1)
 
+        // Save message to Firebase
+        val messageId = chatRef.push().key  // Generate a unique ID for each message
+        messageId?.let {
+            val messageData = mapOf(
+                "message" to message,
+                "sender" to sender,
+                "timestamp" to timestamp,
+                "datestamp" to datestamp
+            )
+            chatRef.child(it).setValue(messageData)
+        }
+
+
     }
+
+    private fun deleteMessage(currentUserName: String, currentUid: String) {
+        val messageRef =
+            FirebaseDatabase.getInstance().getReference("AiChats").child(currentUserName!!)
+                .child(currentUid!!)
+
+        messageRef.removeValue().addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                messageList.clear()
+                chatAdapter.notifyDataSetChanged()
+               // Toast.makeText(this, "Message deleted", Toast.LENGTH_SHORT).show()
+                CommonUtil.showToastMessage(this,"Message deleted")
+
+            } else {
+               // Toast.makeText(this, "Failed to delete message", Toast.LENGTH_SHORT).show()
+                CommonUtil.showToastMessage(this,"Failed to delete message")
+            }
+        }
+    }
+
+    private fun loadMessagesFromFirebase() {
+        binding.progressBar.visibility = ProgressBar.VISIBLE
+        chatRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                messageList.clear() // Clear the list before loading new messages
+                for (messageSnapshot in snapshot.children) {
+                    val message = messageSnapshot.child("message").getValue(String::class.java)
+                    val sender = messageSnapshot.child("sender").getValue(String::class.java)
+                    val timestamp =
+                        messageSnapshot.child("timestamp").getValue(Long::class.java) ?: 0L
+                    val datestamp =
+                        messageSnapshot.child("datestamp").getValue(Long::class.java) ?: 0L
+
+
+                    if (message != null && sender != null) {
+                        val messageObject = AiMessage(message, sender, timestamp, datestamp)
+                        messageList.add(messageObject)
+                    }
+                }
+                chatAdapter.notifyDataSetChanged()
+                binding.recyclerChat.scrollToPosition(messageList.size - 1)
+                binding.progressBar.visibility = ProgressBar.GONE
+
+
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("AiChat", "Failed to load messages: ${error.message}")
+              //  Toast.makeText(this@AiChat, error.message, Toast.LENGTH_SHORT).show()
+                CommonUtil.showToastMessage(this@AiChat,error.message)
+                binding.progressBar.visibility = ProgressBar.GONE
+
+            }
+        })
+    }
+
 
 }
 
