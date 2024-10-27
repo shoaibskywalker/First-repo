@@ -16,6 +16,8 @@ import com.google.firebase.database.FirebaseDatabase
 import com.test.loginfirebase.data.User
 import com.test.loginfirebase.databinding.ActivityMainBinding
 import com.test.loginfirebase.databinding.ActivitySignUpBinding
+import com.test.loginfirebase.utils.CommonUtil
+import com.test.loginfirebase.utils.FirebaseUtil
 import com.test.loginfirebase.utils.sessionManager.UserSessionManager
 
 class SignUp : AppCompatActivity() {
@@ -67,9 +69,8 @@ class SignUp : AppCompatActivity() {
                             if (it.isSuccessful) {
                                 binding.progress.visibility = ProgressBar.GONE
                                 binding.buttonsign.visibility = View.VISIBLE
-                                addUserinDatabase(name, email, firebaseAuth.currentUser?.uid!!)
-                                buttonSign.visibility = View.GONE
-                                progressBar.visibility = View.VISIBLE
+                                val currentUid = FirebaseUtil().currentUserId()!!
+                                addUserinDatabase(name, email,currentUid,pass)
                                 val intent = Intent(this, MainActivity::class.java)
                                 intent.flags =
                                     Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
@@ -78,18 +79,26 @@ class SignUp : AppCompatActivity() {
                                 intent.putExtra("source", "signup")
                                 startActivity(intent)
                             } else {
-                                Toast.makeText(this, it.exception.toString(), Toast.LENGTH_SHORT)
-                                    .show()
+                              /*  Toast.makeText(this, it.exception.toString(), Toast.LENGTH_SHORT)
+                                    .show()*/
+                                CommonUtil.showToastMessage(this, it.exception.toString())
+
                                 binding.progress.visibility = ProgressBar.GONE
                                 binding.buttonsign.visibility = View.VISIBLE
                             }
                         }
                 } else {
-                    Toast.makeText(this, "Password is not matching", Toast.LENGTH_SHORT).show()
+                  //  Toast.makeText(this, "Password is not matching", Toast.LENGTH_SHORT).show()
+                    CommonUtil.showToastMessage(this, "Password is not matching")
+
+                    binding.progress.visibility = ProgressBar.GONE
+                    binding.buttonsign.visibility = View.VISIBLE
                 }
 
             } else {
-                Toast.makeText(this, "Your field is Empty", Toast.LENGTH_SHORT).show()
+               // Toast.makeText(this, "Your field is Empty", Toast.LENGTH_SHORT).show()
+                CommonUtil.showToastMessage(this, "Your field is Empty")
+
             }
 
         }
@@ -98,12 +107,13 @@ class SignUp : AppCompatActivity() {
 
     }
 
-    private fun addUserinDatabase(name: EditText, email: EditText, uid: String) {
+    private fun addUserinDatabase(name: EditText, email: EditText, uid: String,password: EditText) {
 
         val nameVar = name.text.toString()
         val emailVar = email.text.toString()
+        val passVar = password.text.toString()
         databaseReference = FirebaseDatabase.getInstance().getReference()
-        databaseReference.child("User").child(nameVar).setValue(User(nameVar, emailVar, uid))
+        databaseReference.child("User").child(nameVar).setValue(User(name = nameVar, email =  emailVar, uid =  uid, pass = passVar))
 
     }
 
