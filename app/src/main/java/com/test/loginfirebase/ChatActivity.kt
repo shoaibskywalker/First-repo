@@ -7,8 +7,14 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Rect
 import android.media.MediaPlayer
+import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.provider.MediaStore
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import android.view.View
 import android.view.ViewTreeObserver
@@ -19,6 +25,8 @@ import android.widget.PopupMenu
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -30,6 +38,7 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ServerValue
 import com.google.firebase.database.ValueEventListener
 import com.test.loginfirebase.adapter.MessageAdapter
 import com.test.loginfirebase.apiInterface.NotificationApiService
@@ -39,6 +48,8 @@ import com.test.loginfirebase.data.model.NotificationRequest
 import com.test.loginfirebase.databinding.ActivityChatBinding
 import com.test.loginfirebase.fcm.ServerToken
 import com.test.loginfirebase.fcm.getReceiverFcmToken
+import com.test.loginfirebase.utils.CommonUtil
+import com.test.loginfirebase.utils.FirebaseUtil
 import com.test.loginfirebase.utils.sessionManager.UserSessionManager
 import de.hdodenhof.circleimageview.CircleImageView
 import kotlinx.coroutines.CoroutineScope
@@ -48,6 +59,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 import com.test.loginfirebase.data.Message as Message1
 
@@ -65,7 +77,6 @@ class ChatActivity : AppCompatActivity() {
     private lateinit var prefs: UserSessionManager
     private lateinit var addicon: ImageView
     private var isKeyboardOpen = false
-    private val REQUEST_CODE_SELECT_IMAGE = 1
     private var isAddIconRotated = false
     private lateinit var rotationAnimator: ObjectAnimator
     private lateinit var realAccessToken: String
@@ -109,6 +120,7 @@ class ChatActivity : AppCompatActivity() {
         val textViewDay = findViewById<TextView>(R.id.textViewDay)
         val textViewDate = findViewById<TextView>(R.id.textViewDate)
 
+
         //initialize shared preference
         prefs = UserSessionManager(this)
         // Using a Coroutine to call the network operation
@@ -124,7 +136,9 @@ class ChatActivity : AppCompatActivity() {
         }
 
         val filter = IntentFilter("MESSAGE_SENT")
-        registerReceiver(messageSentReceiver, filter)
+        val intentFilter = IntentFilter("MESSAGE_SENT")
+        registerReceiver(messageSentReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED)
+       // registerReceiver(messageSentReceiver, filter)
 
         // Get the current day and date
         val calendar = Calendar.getInstance()
@@ -185,11 +199,19 @@ class ChatActivity : AppCompatActivity() {
         databaseReference = FirebaseDatabase.getInstance().getReference()
 
          receiverUid = intent.getStringExtra("uid")
-        val senderUid = FirebaseAuth.getInstance().currentUser?.uid
+        val senderUid = FirebaseUtil().currentUserId()
         val name = intent.getStringExtra("name")
         val imageUrl = intent.getStringExtra("imageUrl")
         val text = findViewById<TextView>(R.id.toolbarName).apply {
             text = name
+        }
+
+        binding.voiceCall.setOnClickListener {
+            val intent = Intent(this, VoiceCall::class.java)
+            intent.putExtra("channelName", "YOUR_CHANNEL_NAME")
+            intent.putExtra("picture",imageUrl)
+            intent.putExtra("name",name)// Pass channel or other data if needed
+            startActivity(intent)
         }
 
         prefs.notificationSenderUid = receiverUid
@@ -236,7 +258,7 @@ class ChatActivity : AppCompatActivity() {
                     recyclerView.post {
                         recyclerView.smoothScrollToPosition(adapter.itemCount - 0)
                     }
-                    playMessageSound()
+                   // playMessageSound()
                 }
 
                 override fun onCancelled(error: DatabaseError) {
@@ -263,7 +285,7 @@ class ChatActivity : AppCompatActivity() {
                 }
             }
         })
-
+      //  listenForUserStatus(receiverUid!!)
 
         imageView.setOnClickListener {
 
@@ -300,7 +322,7 @@ class ChatActivity : AppCompatActivity() {
                     }
                 editText.text.clear()
             } else {
-                Toast.makeText(this, "Enter message", Toast.LENGTH_SHORT).show()
+                CommonUtil.showToastMessage(this,"Enter message")
             }
         }
         adapter.onMessageLongClickListener = { message ->
@@ -308,16 +330,143 @@ class ChatActivity : AppCompatActivity() {
             showDeleteDialog(message)
         }
 
+        val uid = FirebaseUtil().currentUserId()
+        val userRef = FirebaseDatabase.getInstance().getReference("Users").child(uid!!)
+
+        // Set last online timestamp on disconnect
+        userRef.child("lastOnline").onDisconnect().setValue(ServerValue.TIMESTAMP)
+
+        // for online status
+        val userStatusRef = FirebaseDatabase.getInstance().getReference("Users").child(receiverUid!!).child("status")
+
+        userStatusRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (snapshot.exists()) {
+                    val status = snapshot.getValue(String::class.java)
+                    Log.d("Check status", status.toString())
+                    if (status == "offline") {
+                        // Show "Online" below the name
+                        // Get the last online timestamp
+                        FirebaseDatabase.getInstance().getReference("Users").child(receiverUid!!).child("lastOnline").addListenerForSingleValueEvent(object : ValueEventListener {
+                            override fun onDataChange(lastOnlineSnapshot: DataSnapshot) {
+                                val lastOnlineTimestamp = lastOnlineSnapshot.getValue(Long::class.java)
+                                if (lastOnlineTimestamp != null) {
+                                    val lastOnlineTime = formatLastSeen(lastOnlineTimestamp)
+                                    binding.onlineStatus.text = lastOnlineTime
+                                } else {
+                                    Log.d("last seen ", lastOnlineTimestamp.toString())
+                                    binding.onlineStatus.text = "Offline"
+                                }
+                            }
+
+                            override fun onCancelled(error: DatabaseError) {
+                                Log.e("ChatActivity", "Error retrieving last online time: ${error.message}")
+                            }
+                        })
+                    } else {
+                        // Show "Offline" below the name or hide the status
+                        binding.onlineStatus.text = "Online"
+                    }
+                } else {
+                    Log.d("Check status", "Status field does not exist")
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.d("Check status",error.toString())
+            }
+        })
+
+        // for typing... status
+        val receiver = FirebaseDatabase.getInstance().getReference("Users").child(receiverUid!!).child("typing")
+        receiver.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val isTyping = snapshot.getValue(Boolean::class.java) ?: false
+                if (isTyping) {
+                    // Display "typing..." when the receiver is typing
+                    binding.onlineStatus.text = "typing..."
+                } else {
+// If not typing, maintain the current online/offline status
+                    userStatusRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                        override fun onDataChange(snapshot: DataSnapshot) {
+                            val status = snapshot.getValue(String::class.java)
+                            binding.onlineStatus.text = if (status == "offline") "Offline" else "Online"
+                        }
+
+                        override fun onCancelled(error: DatabaseError) {
+                            Log.e("ChatActivity", "Error retrieving status: ${error.message}")
+                        }
+                    })
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("ChatActivity", "Error retrieving typing status: ${error.message}")
+
+            }
+        })
+
+
+
+        val typingRef = FirebaseDatabase.getInstance().getReference("Users").child(uid!!).child("typing")
+
+        val typingHandler = Handler(Looper.getMainLooper())
+        val typingRunnable = Runnable {
+            typingRef.setValue(false)  // Set typing status to false after inactivity
+        }
+
+        typingRef.setValue(false)
+
+        editText.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+
+                if (s.toString().isNotEmpty()) {
+                    typingRef.setValue(true)  // Set typing status to true
+                    typingHandler.removeCallbacks(typingRunnable) // Remove any pending actions
+                    typingHandler.postDelayed(typingRunnable, 2000) // Post runnable to clear typing status after 5 seconds
+                } else {
+                    typingRef.setValue(false) // Set typing status to false when input is empty
+                    typingHandler.removeCallbacks(typingRunnable) // Ensure no pending runnable is executed
+                }
+            }
+
+            override fun afterTextChanged(s: Editable?) {
+
+            }
+        })
+
+
     }
 
-    private fun initializeChat(receiverUid: String, name: String, message: String) {
-        // Initialize chat with the provided receiverUid and name
-        // You can display the message or update the UI accordingly
-        // For example, display the message in the chat list
-        val messageObject = Message1(message, FirebaseAuth.getInstance().currentUser?.uid)
-        messageList.add(messageObject) // Add the message to the list
-        adapter.notifyDataSetChanged() // Update the adapter
-        scrollToBottom() // Scroll to the bottom of the chat
+    private fun formatTime(timestamp: Long): String {
+        val dateFormat = SimpleDateFormat("hh:mm a", Locale.getDefault()) // 12-hour format with AM/PM
+        return dateFormat.format(Date(timestamp))
+    }
+
+    // Function to format last seen time
+    private fun formatLastSeen(timestamp: Long): String {
+        val lastSeenDate = Date(timestamp)
+        val calendar = Calendar.getInstance()
+        calendar.time = lastSeenDate
+
+        val currentCalendar = Calendar.getInstance()
+
+        return when {
+            calendar.get(Calendar.YEAR) == currentCalendar.get(Calendar.YEAR) &&
+                    calendar.get(Calendar.DAY_OF_YEAR) == currentCalendar.get(Calendar.DAY_OF_YEAR) -> {
+                "Last seen today at ${formatTime(timestamp)}"
+            }
+            calendar.get(Calendar.YEAR) == currentCalendar.get(Calendar.YEAR) &&
+                    calendar.get(Calendar.DAY_OF_YEAR) == currentCalendar.get(Calendar.DAY_OF_YEAR) - 1 -> {
+                "Last seen yesterday at ${formatTime(timestamp)}"
+            }
+            else -> {
+                val dateFormat = SimpleDateFormat("d MMM, yyyy", Locale.getDefault())
+                "Last seen on ${dateFormat.format(lastSeenDate)}"
+            }
+        }
     }
 
 
@@ -366,43 +515,18 @@ class ChatActivity : AppCompatActivity() {
                     // Notification sent successfully
                     Log.d("Notification Response", response.body().toString())
 
-                    runOnUiThread {
-                        Toast.makeText(this@ChatActivity, "Notification sent", Toast.LENGTH_SHORT)
-                            .show()
-                    }
                 } else {
                     Log.e("Notification Error", response.errorBody()?.string() ?: "Unknown error")
                     // Handle error
                     runOnUiThread {
-                        Toast.makeText(
-                            this@ChatActivity,
-                            "Failed to send notification",
-                            Toast.LENGTH_SHORT
-                        ).show()
+
+                        CommonUtil.showToastMessage(this@ChatActivity,"Failed to send notification")
                     }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
-    }
-
-    private fun resetAddIconRotation() {
-        addicon.rotation = 0f
-        isAddIconRotated = false
-    }
-
-    private fun rotateAddIcon() {
-        if (!isAddIconRotated) {
-            // Rotate the add icon by 45 degrees
-            addicon.rotation = 45f
-            isAddIconRotated = true
-        } else {
-            // Reset add icon rotation to its original position
-            addicon.rotation = 0f
-            isAddIconRotated = false
-        }
-
     }
 
 
@@ -426,9 +550,9 @@ class ChatActivity : AppCompatActivity() {
             if (task.isSuccessful) {
                 messageList.remove(message)
                 adapter.notifyDataSetChanged()
-                Toast.makeText(this, "Message deleted", Toast.LENGTH_SHORT).show()
+                CommonUtil.showToastMessage(this,"Message deleted")
             } else {
-                Toast.makeText(this, "Failed to delete message", Toast.LENGTH_SHORT).show()
+                CommonUtil.showToastMessage(this,"Failed to delete message")
             }
         }
     }
@@ -437,83 +561,7 @@ class ChatActivity : AppCompatActivity() {
         recyclerView.scrollToPosition(adapter.itemCount - 1)
     }
 
-    private fun listenForOnlineStatus(receiverUid: String?) {
-        if (receiverUid == null) {
-            Log.d("receiver uid check","receiver uid is NULL")
 
-        }
-        val receiverUserRef =
-            receiverUid?.let { FirebaseDatabase.getInstance().getReference().child("User").child(it) }
-        receiverUserRef?.child("online")?.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val isOnline = snapshot.getValue(Boolean::class.java) ?: false
-
-                if (isOnline) {
-
-                    val textViewOnlineStatus = findViewById<TextView>(R.id.onlineStatus)
-                    textViewOnlineStatus.text = "Online"
-                } else {
-                    val textViewOnlineStatus = findViewById<TextView>(R.id.onlineStatus)
-                    textViewOnlineStatus.text = "Offline"
-                    /*if (lastSeenTimestamp != null) {
-                    val lastSeenTime = getTimeAgo(lastSeenTimestamp)
-                    textViewOnlineStatus.text = "Last seen $lastSeenTime"
-                } else {
-                    textViewOnlineStatus.text = "Offline"
-                }*/
-                }
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                // Handle onCancelled
-            }
-        })
-    }
-
-    private fun playMessageSound() {
-        // Check if MediaPlayer is initialized and not playing
-        mediaPlayer.let { player ->
-            if (!player.isPlaying) {
-                player.start()
-            }
-        }
-    }
-
-    private fun getTimeAgo(timestamp: Long): String {
-        val now = System.currentTimeMillis()
-        val timeDifference = now - timestamp
-
-        val SECOND_MILLIS: Long = 1000
-        val MINUTE_MILLIS = 60 * SECOND_MILLIS
-        val HOUR_MILLIS = 60 * MINUTE_MILLIS
-        val DAY_MILLIS = 24 * HOUR_MILLIS
-
-        return when {
-            timeDifference < MINUTE_MILLIS -> "just now"
-            timeDifference < 2 * MINUTE_MILLIS -> "a minute ago"
-            timeDifference < 50 * MINUTE_MILLIS -> "${timeDifference / MINUTE_MILLIS} minutes ago"
-            timeDifference < 90 * MINUTE_MILLIS -> "an hour ago"
-            timeDifference < 24 * HOUR_MILLIS -> "${timeDifference / HOUR_MILLIS} hours ago"
-            timeDifference < 48 * HOUR_MILLIS -> "yesterday"
-            else -> "${timeDifference / DAY_MILLIS} days ago"
-        }
-    }
-
-
-    override fun onResume() {
-        super.onResume()
-        // Your existing code...
-    }
-
-    override fun onPause() {
-        super.onPause()
-        // Your existing code...
-    }
-
-    override fun onStop() {
-        super.onStop()
-        // Your existing code...
-    }
 
     fun showPopupMenu(view: View) {
         val popupMenu = PopupMenu(this, view)
@@ -521,28 +569,21 @@ class ChatActivity : AppCompatActivity() {
         popupMenu.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.camera -> {
-                    // Handle menu item 1 click
-                    val intent = Intent(Intent.ACTION_PICK)
-                    intent.type = "image/*"
-                    startActivityForResult(intent, REQUEST_CODE_SELECT_IMAGE)
+                    CommonUtil.showToastMessage(this,"Coming soon...")
                     true
                 }
-
                 R.id.gallery -> {
-                    // Handle menu item 2 click
+                    CommonUtil.showToastMessage(this,"Coming soon...")
                     true
                 }
-
                 R.id.mic -> {
-                    // Handle menu item 2 click
+                    CommonUtil.showToastMessage(this,"Coming soon...")
                     true
                 }
-
                 else -> false
             }
         }
-        // Use custom style to position the popup menu at the bottom of the screen
-        //   popupMenu.setStyle(R.style.PopupMenuBottomStyle)
+
         popupMenu.show()
     }
 }
