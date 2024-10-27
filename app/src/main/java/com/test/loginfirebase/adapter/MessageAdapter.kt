@@ -12,8 +12,11 @@ import com.bumptech.glide.Glide
 import com.google.firebase.auth.FirebaseAuth
 import com.test.loginfirebase.R
 import com.test.loginfirebase.data.Message
+import com.test.loginfirebase.utils.FirebaseUtil
 import java.text.DateFormat
+import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 
 class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
@@ -41,7 +44,7 @@ class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) 
     override fun getItemViewType(position: Int): Int {
         val currentpossition = messageList[position]
 
-        return if (FirebaseAuth.getInstance().currentUser?.uid.equals(currentpossition.senderId)) {
+        return if (FirebaseUtil().currentUserId().equals(currentpossition.senderId)) {
             ITEM_SEND
         } else {
             ITEM_RECEIVE
@@ -60,7 +63,14 @@ class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) 
                 Date(
                     it
                 )
-            }?.let { DateFormat.getTimeInstance().format(it) }
+            }?.let { SimpleDateFormat("hh:mm a", Locale.getDefault()).format(it) }
+
+            holder.dateSend.text = currentpossition.dateStamp?.let {
+                Date(
+                    it
+                )
+            }?.let { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(it) }
+
             viewHolder.itemView.setOnLongClickListener {
                 onMessageLongClickListener!!.invoke(currentpossition)
                 true
@@ -73,7 +83,14 @@ class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) 
                 Date(
                     it
                 )
-            }?.let { DateFormat.getTimeInstance().format(it) }
+            }?.let { SimpleDateFormat("hh:mm a", Locale.getDefault()).format(it) }
+
+            holder.dateReceive.text = currentpossition.dateStamp?.let {
+                Date(
+                    it
+                )
+            }?.let { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(it) }
+
             viewHolderReceive.itemView.setOnLongClickListener {
                 onMessageLongClickListener!!.invoke(currentpossition)
                 true
@@ -86,6 +103,8 @@ class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) 
 
         val sendText = itemView.findViewById<TextView>(R.id.textSend)
         val timeSend = itemView.findViewById<TextView>(R.id.sendTimeSend)
+        val dateSend = itemView.findViewById<TextView>(R.id.dateSend)
+
 
     }
 
@@ -93,6 +112,8 @@ class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) 
 
         val receiveText = itemView.findViewById<TextView>(R.id.textReceive)
         val timeReceive = itemView.findViewById<TextView>(R.id.sendTimeReceive)
+        val dateReceive = itemView.findViewById<TextView>(R.id.dateReceive)
+
 
     }
 
