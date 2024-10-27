@@ -21,15 +21,7 @@ import de.hdodenhof.circleimageview.CircleImageView
 
 class Profile : AppCompatActivity() {
 
-    private lateinit var imageBack: ImageView
-    private lateinit var bgImage: ImageView
-    private lateinit var profileImg: CircleImageView
-    private lateinit var name: TextView
-    private lateinit var email: TextView
-    private lateinit var editImage: CircleImageView
-    private lateinit var prefs: UserSessionManager
 
-    private val PICK_IMAGE_REQUEST = 1
     private lateinit var binding: ActivityProfileBinding
 
     lateinit var adapter: BagAdapter
@@ -61,41 +53,5 @@ class Profile : AppCompatActivity() {
         adapter = BagAdapter(this, bagList)
         binding.bagListRecyclerView.layoutManager = LinearLayoutManager(this)
         binding.bagListRecyclerView.adapter = adapter
-
-        /* Glide.with(this).load(TIRANGA)
-             .into(binding.userImage)
-
-         binding.userImage.setOnClickListener {
-             binding.showImage.visibility = View.VISIBLE
-             binding.showImage.alpha = 0f  // Set the initial alpha to 0 for the fade-in effect
-
-             Glide.with(this)
-                 .load(TIRANGA)
-                 .into(binding.showImage)
-
-             // Animate the alpha property to 1 (fully visible) over 500ms
-             binding.showImage.animate().alpha(1f).setDuration(300).start()
-
-             // Animate background color change smoothly over 500ms
-             binding.parentLayout.animate().setDuration(300).withStartAction {
-                 binding.parentLayout.setBackgroundColor(Color.parseColor("#18181831"))
-             }.start()
-         }
-
-         binding.parentLayout.setOnClickListener {
-             if (binding.showImage.visibility == View.VISIBLE) {
-                 // Fade out the image smoothly
-                 binding.showImage.animate().alpha(0f).setDuration(500).withEndAction {
-                     binding.showImage.visibility = View.GONE
-                 }.start()
-
-                 // Animate background color back to white
-                 binding.parentLayout.animate().setDuration(500).withStartAction {
-                     binding.parentLayout.setBackgroundColor(Color.WHITE)
-                 }.start()
-             }
-         }*/
-
-
     }
 }
