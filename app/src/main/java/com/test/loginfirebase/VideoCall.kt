@@ -8,7 +8,9 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.google.android.gms.common.internal.service.Common
 import com.test.loginfirebase.databinding.ActivityVideoCallBinding
+import com.test.loginfirebase.utils.CommonUtil
 import io.agora.rtc2.ChannelMediaOptions
 import io.agora.rtc2.Constants
 import io.agora.rtc2.IRtcEngineEventHandler
@@ -60,11 +62,13 @@ class VideoCall : AppCompatActivity() {
 
     fun showMessage(message: String?) {
         runOnUiThread {
-            Toast.makeText(
+           /* Toast.makeText(
                 applicationContext,
                 message,
                 Toast.LENGTH_SHORT
-            ).show()
+            ).show()*/
+
+            CommonUtil.showToastMessage(applicationContext,message!!)
         }
     }
 
@@ -195,8 +199,9 @@ class VideoCall : AppCompatActivity() {
             agoraEngine!!.joinChannel(token, channelName, uid, options)
             binding.leaveCallButton.visibility = View.VISIBLE
         } else {
-            Toast.makeText(applicationContext, "Permissions was not granted", Toast.LENGTH_SHORT)
-                .show()
+            /*Toast.makeText(applicationContext, "Permissions was not granted", Toast.LENGTH_SHORT)
+                .show()*/
+            CommonUtil.showToastMessage(applicationContext,"Permissions was not granted")
         }
     }
 
