@@ -83,6 +83,9 @@ dependencies {
     implementation ("com.google.auth:google-auth-library-oauth2-http:1.2.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
+    implementation ("com.google.firebase:firebase-config-ktx:21.0.5")
+    implementation("androidx.biometric:biometric:1.1.0")
+
 
 
 }
