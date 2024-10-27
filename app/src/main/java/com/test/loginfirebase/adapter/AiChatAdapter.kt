@@ -9,7 +9,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.test.loginfirebase.R
 import com.test.loginfirebase.data.AiMessage
 import java.text.DateFormat
+import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 
 class AiChatAdapter(
     private val messageModalArrayList: ArrayList<AiMessage>,
@@ -47,11 +49,21 @@ class AiChatAdapter(
             is UserViewHolder -> {
                 holder.userTV.text = modal.message
                 holder.timeSend.text = timeFormatted
+                holder.dateSend.text = modal.dateStamp?.let {
+                    Date(
+                        it
+                    )
+                }?.let { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(it) }
             }
 
             is BotViewHolder -> {
                 holder.botTV.text = modal.message
                 holder.timeReceive.text = timeFormatted
+                holder.dateReceive.text = modal.dateStamp?.let {
+                    Date(
+                        it
+                    )
+                }?.let { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(it) }
             }
         }
     }
@@ -71,11 +83,15 @@ class AiChatAdapter(
     inner class UserViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val userTV: TextView = itemView.findViewById(R.id.textSend)
         val timeSend = itemView.findViewById<TextView>(R.id.sendTimeSend)
+        val dateSend = itemView.findViewById<TextView>(R.id.dateSend)
+
     }
 
     inner class BotViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val botTV: TextView = itemView.findViewById(R.id.textReceive)
         val timeReceive = itemView.findViewById<TextView>(R.id.sendTimeReceive)
+        val dateReceive = itemView.findViewById<TextView>(R.id.dateReceive)
+
 
     }
 }
