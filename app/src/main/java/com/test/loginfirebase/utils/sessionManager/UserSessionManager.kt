@@ -65,6 +65,15 @@ class UserSessionManager
             prefs.edit().putString("userEmailLogin", value).apply()
         }
 
+
+    var clearTimestamp: Long
+        get() = prefs.getLong("clear_timestamp", 0L)
+        set(value) {
+            prefEditor.putLong("clear_timestamp", value)
+            prefEditor.apply()
+        }
+
+
     var userEmailSignup: String?
         get() = prefs.getString("userEmailSignup", null)
         set(userEmail) {

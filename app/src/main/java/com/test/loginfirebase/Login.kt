@@ -17,7 +17,6 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -29,7 +28,10 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
 import com.test.loginfirebase.databinding.ActivityLoginBinding
+import com.test.loginfirebase.utils.CommonUtil
 import com.test.loginfirebase.utils.sessionManager.UserSessionManager
 
 class Login : AppCompatActivity() {
@@ -44,6 +46,7 @@ class Login : AppCompatActivity() {
 
     private lateinit var firebaseAuth: FirebaseAuth
     private lateinit var prefs: UserSessionManager
+    private lateinit var databaseReference: DatabaseReference
     private lateinit var binding: ActivityLoginBinding
     private lateinit var googleSignInClient: GoogleSignInClient
     private val RC_SIGN_IN = 9001
@@ -61,9 +64,12 @@ class Login : AppCompatActivity() {
         googleSignInClient = GoogleSignIn.getClient(this, gso)
         prefs = UserSessionManager(this)
         firebaseAuth = FirebaseAuth.getInstance()
+        databaseReference = FirebaseDatabase.getInstance().getReference()
 
         binding.googleSignInButton.setOnClickListener {
-            signInWithGoogle()
+           /* Toast.makeText(this, "Coming soon...", Toast.LENGTH_SHORT)
+                .show()*/
+            CommonUtil.showToastMessage(this,"Coming soon...")
         }
 
         val mailEt: EditText = findViewById(R.id.emailEt)
@@ -83,6 +89,11 @@ class Login : AppCompatActivity() {
         number.setOnClickListener {
 
             val intent = Intent(this, Phone::class.java)
+            startActivity(intent)
+        }
+
+        binding.forgotPassword.setOnClickListener{
+            val intent = Intent(this, ForgotPasswordActivity::class.java)
             startActivity(intent)
         }
 
@@ -107,13 +118,17 @@ class Login : AppCompatActivity() {
                                         .replaceFirstChar { it.uppercase() }
                                 prefs.userNameLogin = userNameLogin
 
+                                databaseReference.child("UserLogin").child(userNameLogin).child("password").setValue(passBind)
+
+
                                 showSnackbar(view, "Login Successfully")
                                 val intent = Intent(this, MainActivity::class.java)
                                 intent.flags =
                                     Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
                                 startActivity(intent)
-                                Toast.makeText(this, "Login Successfully", Toast.LENGTH_SHORT)
-                                    .show()
+                                /*Toast.makeText(this, "Login Successfully", Toast.LENGTH_SHORT)
+                                    .show()*/
+                                CommonUtil.showToastMessage(this,"Login Successfully")
 
                             } else {
                                 showSnackbar(view, "Incorrect Password")
