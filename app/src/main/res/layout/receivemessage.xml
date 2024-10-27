@@ -50,9 +50,23 @@
             android:layout_marginTop="3dp"
             android:text="1:56AM"
             android:textColor="#6A6A6A"
-            android:textSize="10sp"
+            android:textSize="9sp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/textReceive" />
+
+        <TextView
+            android:id="@+id/dateReceive"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/sendTimeReceive"
+            android:layout_alignParentEnd="true"
+            android:text="11/11/2023"
+            android:textColor="#6A6A6A"
+            android:textSize="9sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/sendTimeReceive"
+
+         />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

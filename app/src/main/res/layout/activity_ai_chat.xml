@@ -61,6 +61,16 @@
                 app:layout_constraintStart_toEndOf="@+id/imageBack"
                 app:layout_constraintTop_toBottomOf="@+id/toolbarName" />
 
+            <de.hdodenhof.circleimageview.CircleImageView
+                android:id="@+id/deleteImage"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginTop="10dp"
+                android:src="@drawable/baseline_delete_outline_24"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -119,6 +129,7 @@
         android:id="@+id/progressBar"
         android:layout_width="50dp"
         android:layout_height="50dp"
+        android:visibility="gone"
         android:indeterminateTint="@color/normalColor"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

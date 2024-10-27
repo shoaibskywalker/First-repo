@@ -65,11 +65,40 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="10dp"
-            android:text="Dummy Online"
+            android:text=""
             android:textColor="@color/white"
             android:textSize="10sp"
             app:layout_constraintStart_toEndOf="@+id/image"
             app:layout_constraintTop_toBottomOf="@+id/toolbarName" />
+
+        <LinearLayout
+            android:id="@+id/call"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="20dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent">
+
+
+            <ImageView
+                android:id="@+id/videoCall"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@drawable/videocall" />
+
+            <View
+                android:layout_width="17dp"
+                android:layout_height="1dp"/>
+
+            <ImageView
+                android:id="@+id/voiceCall"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/call" />
+        </LinearLayout>
 
 
     </androidx.constraintlayout.widget.ConstraintLayout>
@@ -77,10 +106,12 @@
     </androidx.appcompat.widget.Toolbar>
 
     <LinearLayout
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="20dp"
         android:orientation="horizontal"
+        android:gravity="center"
         android:layout_marginEnd="20dp"
+        android:layout_marginStart="20dp"
         app:layout_constraintBottom_toTopOf="@+id/recyclerChat"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.539"
@@ -90,8 +121,7 @@
 
         <TextView
             android:id="@+id/textViewDay"
-            android:layout_width="70dp"
-            android:textAlignment="center"
+            android:layout_width="wrap_content"
             android:layout_height="20dp"
             android:layout_gravity="center_vertical"
             android:layout_marginStart="16dp"
@@ -102,9 +132,13 @@
             android:textColor="@android:color/black"
             android:textSize="13sp" />
 
+        <View
+            android:layout_width="5dp"
+            android:layout_height="1dp"/>
+
         <TextView
             android:id="@+id/textViewDate"
-            android:layout_width="70dp"
+            android:layout_width="wrap_content"
             android:layout_height="20dp"
             android:layout_gravity="center_vertical"
 
