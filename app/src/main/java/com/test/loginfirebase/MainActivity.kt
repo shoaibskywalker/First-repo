@@ -8,6 +8,7 @@ import android.content.IntentFilter
 import android.net.ConnectivityManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
@@ -33,6 +34,7 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.navigation.NavigationView
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.ChildEventListener
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
@@ -41,8 +43,11 @@ import com.google.firebase.database.ValueEventListener
 import com.google.firebase.messaging.FirebaseMessaging
 import com.test.loginfirebase.adapter.UserAdapter
 import com.test.loginfirebase.broadcastReceiver.BatteryLevelReceiver
+import com.test.loginfirebase.data.Message
 import com.test.loginfirebase.data.User
 import com.test.loginfirebase.databinding.ActivityMainBinding
+import com.test.loginfirebase.utils.CommonUtil
+import com.test.loginfirebase.utils.FirebaseUtil
 import com.test.loginfirebase.utils.sessionManager.UserSessionManager
 import de.hdodenhof.circleimageview.CircleImageView
 
@@ -70,25 +75,17 @@ class MainActivity : AppCompatActivity() {
     private lateinit var progressBar: ProgressBar
     private lateinit var batteryLevelReceiver: BatteryLevelReceiver
     private var currentUserEmail: String? = null
+    private lateinit var userDatabaseRef: DatabaseReference
+    var senderRoom: String? = null
+    var receiverUid: String? = null
+    private lateinit var currentUserUid: String
+
 
     private val unreadStatusReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             // When the broadcast is received, refresh the user list
             mAdapter.notifyDataSetChanged() // This will force the UI to refresh
         }
-    }
-
-    override fun onResume() {
-        super.onResume()
-       // Refresh user list when returning to main activity
-        Log.d("TAG","On resume call")
-    }
-
-
-    override fun onStart() {
-        super.onStart()
-         // Refresh user list when returning to main activity
-        Log.d("TAG","On Start call")
     }
 
     override fun onRestart() {
@@ -105,6 +102,8 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         prefs = UserSessionManager(this)
 
+        currentUserUid = FirebaseUtil().currentUserId() ?: ""
+
         batteryLevelReceiver = BatteryLevelReceiver()
         currentUserEmail = prefs.userEmailLogin
 
@@ -112,8 +111,23 @@ class MainActivity : AppCompatActivity() {
             moveToAiChat()
         }
 
+
+       // val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+        Log.d("uid",currentUserUid)
+        userDatabaseRef = FirebaseDatabase.getInstance().getReference("Users").child(currentUserUid)
+        // Set user to "online"
+        userDatabaseRef.child("status").setValue("online")
+        userDatabaseRef.child("online")
+            .setValue(true)
+
+        // Listen for disconnect event to set user as offline
+
+        userDatabaseRef.child("status").onDisconnect().setValue("offline")
+        userDatabaseRef.child("online").onDisconnect().setValue(false)
+
         // Cancel all notifications when the app is opened
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.cancelAll()
 
         val fab: FloatingActionButton = findViewById(R.id.fab)
@@ -126,11 +140,11 @@ class MainActivity : AppCompatActivity() {
         registerReceiver(batteryLevelReceiver, filter)
 
 //Online Status
-        currentUserRef = FirebaseDatabase.getInstance().getReference().child("Users")
+        /*currentUserRef = FirebaseDatabase.getInstance().getReference().child("Users")
             .child(FirebaseAuth.getInstance().currentUser?.uid!!)
         currentUserRef.child("online")
             .setValue(true) // Set online status to true when the app is opened
-        currentUserRef.child("online").onDisconnect().setValue(false)
+        currentUserRef.child("online").onDisconnect().setValue(false)*/
         //signup fetching name and email
         val nameSignUp = intent.getStringExtra("name")
         emailSignUp = intent.getStringExtra("email").toString()
@@ -167,7 +181,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Register a receiver to listen for broadcast updates
-        LocalBroadcastManager.getInstance(this).registerReceiver(unreadStatusReceiver, IntentFilter("update_user_list"))
+        LocalBroadcastManager.getInstance(this)
+            .registerReceiver(unreadStatusReceiver, IntentFilter("update_user_list"))
 
 
         searchBar.addTextChangedListener(object : TextWatcher {
@@ -189,9 +204,8 @@ class MainActivity : AppCompatActivity() {
         headerNameTextView = headerView.findViewById(R.id.shoaib)
         headerEmailTextView = headerView.findViewById(R.id.email)
         headerImageView = headerView.findViewById(R.id.imageView)
-        val headerArrowImage = headerView.findViewById<ImageView>(R.id.headerArrowImage)
 
-        headerArrowImage.setOnClickListener {
+        headerImageView.setOnClickListener {
             moveToProfile2Activity()
         }
 
@@ -243,7 +257,13 @@ class MainActivity : AppCompatActivity() {
                 R.id.videoCall -> moveToVideoCallActivity()
                 R.id.share -> shareOurApp()
                 R.id.rate -> showRatingDialog()
-                R.id.logout -> showDialogForLogOut()
+                R.id.logout -> showAlertDialog(
+                    title = "Logging Out!",
+                    message = "Are you sure you want to logout the app?",
+                    negativeButton = "No",
+                    positiveButton = "Yes"
+                )
+
                 R.id.voiceCall -> moveToVoiceCallActivity()
 
 
@@ -286,6 +306,8 @@ class MainActivity : AppCompatActivity() {
                     for (postSnapshot in snapshot.children) {
 
                         val currentUser = postSnapshot.getValue(User::class.java)
+                        senderRoom = currentUserId + currentUser?.uid
+                        receiverUid = currentUser?.uid
                         if (mAuth.currentUser?.uid != currentUser?.uid) {
 
                             userList.add(currentUser!!)
@@ -303,22 +325,53 @@ class MainActivity : AppCompatActivity() {
 
             })
 
+            // Listen for new messages in the chat room
+          listenForNewMessages(currentUserId!!)
+
+
             getFcmToken()
 
         } else {
-            showDialog()
+            showAlertDialog(
+                title = "No Internet Connection",
+                message = "Please check your internet connection and try again.",
+                negativeButton = "Close app",
+                positiveButton = "Enable Internet"
+            )
         }
 
     }
+
+    private fun listenForNewMessages(currentUserId: String) {
+        for (user in filterList) {
+            val senderRoom = currentUserId + user.uid
+            val chatRoomRef = FirebaseDatabase.getInstance().getReference("chats").child(senderRoom).child("messages")
+
+            chatRoomRef.addChildEventListener(object : ChildEventListener {
+                override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                    // Update last message in the user adapter when a new message is added
+                    val lastMessage = snapshot.getValue(Message::class.java)?.message ?: ""
+                    mAdapter.updateLastMessage(user.uid!!, lastMessage)
+                }
+
+                override fun onCancelled(error: DatabaseError) {}
+
+                override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {}
+                override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
+                override fun onChildRemoved(snapshot: DataSnapshot) {}
+            })
+        }
+    }
+
 
     private fun getFcmToken() {
         FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
             if (task.isSuccessful) {
                 val token = task.result
                 // Save the token to Firebase Realtime Database or Firestore under the user's ID
-                Log.d("User token",token)
-                val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
-                currentUserId?.let { uid ->
+                Log.d("User token", token)
+               // val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+                currentUserUid.let { uid ->
                     FirebaseDatabase.getInstance().getReference("Users").child(uid)
                         .child("fcmToken").setValue(token)
                 }
@@ -369,49 +422,66 @@ class MainActivity : AppCompatActivity() {
         return activeNetworkInfo != null && activeNetworkInfo.isConnected
     }
 
-    private fun showDialog() {
+    private fun showAlertDialog(
+        title: String,
+        message: String,
+        negativeButton: String,
+        positiveButton: String
+    ) {
         val builder = AlertDialog.Builder(this)
-        builder.setTitle("No Internet Connection")
-        builder.setMessage("Please check your internet connection and try again.")
+        builder.setTitle(title)
+        builder.setMessage(message)
 
-        builder.setNegativeButton("Close app") { dialog, which ->
+        builder.setNegativeButton(negativeButton) { dialog, which ->
             // Handle the click event, e.g., close the app
-            finish()
+            if (negativeButton == "Close app") {
+                finish()
+            } else {
+                dialog.dismiss()
+            }
         }
-        builder.setPositiveButton("Enable Internet") { dialog, which ->
-            openDataSettings()
+        builder.setPositiveButton(positiveButton) { dialog, which ->
+            if (positiveButton == "Enable Internet") {
+                openDataSettings()
+            } else {
+                logoutUser()
+            }
         }
-        builder.setCancelable(false)
+        builder.setCancelable(if (title == "No Internet Connection") false else true)
         builder.show()
     }
 
-    private fun showDialogForLogOut() {
-        val builder = AlertDialog.Builder(this)
-        builder.setTitle("Logging Out!")
-        builder.setMessage("Are you sure you want to logout the app?")
 
-        builder.setNegativeButton("No") { dialog, which ->
-            dialog.dismiss()
-        }
-        builder.setPositiveButton("Yes") { dialog, which ->
-            logoutUser()
-        }
-        builder.setCancelable(true)
-        builder.show()
-    }
 
     private fun openDataSettings() {
         val intent = Intent().apply {
-            action = android.provider.Settings.ACTION_WIRELESS_SETTINGS
+            action = Settings.ACTION_DATA_ROAMING_SETTINGS
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
         startActivity(intent)
     }
 
     private fun logoutUser() {
+       // val uidd = FirebaseAuth.getInstance().currentUser?.uid
+
+            // Set user status to offline in Firebase
+            FirebaseDatabase.getInstance().getReference("Users").child(currentUserUid).child("status").setValue("offline")
+        FirebaseDatabase.getInstance().getReference("Users").child(currentUserUid).child("online").setValue(false)
+
+        // Delete the FCM token to stop receiving notifications
+        FirebaseMessaging.getInstance().deleteToken()
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    Log.d("FCM Token", "Token deleted successfully.")
+                } else {
+                    Log.e("FCM Token", "Failed to delete token: ${task.exception}")
+                }
+            }
         mAuth.signOut()
         navigateToLoginScreen()
-        Toast.makeText(this@MainActivity, "Log out Successfully", Toast.LENGTH_LONG).show()
+      //  Toast.makeText(this@MainActivity, "Log out Successfully", Toast.LENGTH_LONG).show()
+        CommonUtil.showToastMessage(this,"Log out Successfully")
+
     }
 
 
@@ -447,10 +517,14 @@ class MainActivity : AppCompatActivity() {
         buttonSubmit.setOnClickListener {
             val rating = ratingBar.rating
             if (rating.toInt() == 0) {
-                Toast.makeText(this, "Please atleast give 0.5 star", Toast.LENGTH_SHORT).show()
+               // Toast.makeText(this, "Please atleast give 0.5 star", Toast.LENGTH_SHORT).show()
+                CommonUtil.showToastMessage(this,"Please atleast give 0.5 star")
+
             } else {
-                Toast.makeText(this, "Thank you for your rating: $rating", Toast.LENGTH_SHORT)
-                    .show()
+               /* Toast.makeText(this, "Thank you for your rating: $rating", Toast.LENGTH_SHORT)
+                    .show()*/
+                CommonUtil.showToastMessage(this,"Thank you for your rating: $rating")
+
                 alertDialog.dismiss()
             }
             // Handle the rating, e.g., submit it to a server or store it locally
@@ -494,14 +568,20 @@ class MainActivity : AppCompatActivity() {
                 .addValueEventListener(object : ValueEventListener {
                     override fun onDataChange(snapshot: DataSnapshot) {
                         val imageUrl = snapshot.value as? String
-                        imageUrl?.let {
-                            Glide.with(this@MainActivity)
-                                .load(it)
-                                .placeholder(R.drawable.portrait_placeholder)
-                                .error(R.drawable.portrait_placeholder)
-                                .skipMemoryCache(true)  // Ensure it's not loading from cache
-                                .diskCacheStrategy(DiskCacheStrategy.NONE)  // Avoid disk caching
-                                .into(headerImageView)  // Load updated image
+                        if (imageUrl != null && imageUrl.isNotEmpty()) {
+
+                            imageUrl?.let {
+                                Glide.with(this@MainActivity)
+                                    .load(it)
+                                    .placeholder(R.drawable.portrait_placeholder)
+                                    .error(R.drawable.portrait_placeholder)
+                                    .skipMemoryCache(true)  // Ensure it's not loading from cache
+                                    .diskCacheStrategy(DiskCacheStrategy.ALL)  // Avoid disk caching
+                                    .into(headerImageView)  // Load updated image
+                            }
+                        } else {
+                            headerImageView.setImageResource(R.drawable.portrait_placeholder)
+
                         }
                     }
 
@@ -538,6 +618,10 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         // Unregister the receiver when the activity is destroyed
+      //  val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+        FirebaseDatabase.getInstance().getReference("Users").child(currentUserUid).child("status").setValue("offline")
+        FirebaseDatabase.getInstance().getReference("Users").child(currentUserUid).child("online").setValue(false)
+
         unregisterReceiver(batteryLevelReceiver)
         LocalBroadcastManager.getInstance(this).unregisterReceiver(unreadStatusReceiver)
 
