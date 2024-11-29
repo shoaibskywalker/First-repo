@@ -1,6 +1,5 @@
 package com.test.loginfirebase.adapter
 
-import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -15,7 +14,6 @@ import java.util.Locale
 
 class AiChatAdapter(
     private val messageModalArrayList: ArrayList<AiMessage>,
-    private val context: Context
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
@@ -82,15 +80,15 @@ class AiChatAdapter(
 
     inner class UserViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val userTV: TextView = itemView.findViewById(R.id.textSend)
-        val timeSend = itemView.findViewById<TextView>(R.id.sendTimeSend)
-        val dateSend = itemView.findViewById<TextView>(R.id.dateSend)
+        val timeSend: TextView = itemView.findViewById(R.id.sendTimeSend)
+        val dateSend: TextView = itemView.findViewById(R.id.dateSend)
 
     }
 
     inner class BotViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val botTV: TextView = itemView.findViewById(R.id.textReceive)
-        val timeReceive = itemView.findViewById<TextView>(R.id.sendTimeReceive)
-        val dateReceive = itemView.findViewById<TextView>(R.id.dateReceive)
+        val timeReceive: TextView = itemView.findViewById(R.id.sendTimeReceive)
+        val dateReceive: TextView = itemView.findViewById(R.id.dateReceive)
 
 
     }
