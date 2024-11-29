@@ -18,7 +18,6 @@ import com.google.firebase.auth.PhoneAuthProvider
 class Otp : AppCompatActivity() {
 
     private lateinit var verificationId: String
-    private lateinit var firebaseAuth: FirebaseAuth
     private lateinit var progressBar: ProgressBar
     private lateinit var resend: TextView
 
