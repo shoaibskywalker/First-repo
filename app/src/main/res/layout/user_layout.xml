@@ -30,6 +30,17 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <View
+        android:id="@+id/activeStory"
+        android:layout_width="58dp"
+        android:visibility="gone"
+        android:layout_height="58dp"
+        android:background="@drawable/story_active"
+        app:layout_constraintTop_toTopOf="@+id/imageProfile"
+        app:layout_constraintStart_toStartOf="@+id/imageProfile"
+        app:layout_constraintEnd_toEndOf="@+id/imageProfile"
+        app:layout_constraintBottom_toBottomOf="@+id/imageProfile"/>
+
+    <View
         android:id="@+id/onlineDotView"
         android:layout_width="15dp"
         android:layout_height="15dp"
