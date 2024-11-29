@@ -32,6 +32,7 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.test.loginfirebase.databinding.ActivityLoginBinding
 import com.test.loginfirebase.utils.CommonUtil
+import com.test.loginfirebase.utils.FirebaseUtil
 import com.test.loginfirebase.utils.sessionManager.UserSessionManager
 
 class Login : AppCompatActivity() {
@@ -119,6 +120,7 @@ class Login : AppCompatActivity() {
                                 prefs.userNameLogin = userNameLogin
 
                                 databaseReference.child("UserLogin").child(userNameLogin).child("password").setValue(passBind)
+                                databaseReference.child("Users").child(FirebaseUtil().currentUserId()!!).child("name").setValue(userNameLogin)
 
 
                                 showSnackbar(view, "Login Successfully")
@@ -167,10 +169,10 @@ class Login : AppCompatActivity() {
 
     }
 
-    private fun signInWithGoogle() {
+  /*  private fun signInWithGoogle() {
         val signInIntent = googleSignInClient.signInIntent
         startActivityForResult(signInIntent, RC_SIGN_IN)
-    }
+    }*/
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
