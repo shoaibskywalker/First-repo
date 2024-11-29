@@ -91,18 +91,65 @@
         app:layout_constraintStart_toStartOf="@+id/image"
         app:layout_constraintTop_toTopOf="@+id/image" />
 
+        <LinearLayout
+            android:id="@+id/linear0"
+            android:layout_width="match_parent"
+            android:layout_height="70dp"
+            android:layout_marginStart="30dp"
+            android:layout_marginTop="30dp"
+            android:layout_marginEnd="10dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/image">
+
+
+            <ImageView
+                android:id="@+id/imageUser"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@drawable/person_outline" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="20dp"
+                    android:text="User Name"
+                    android:textColor="#9C9C9C"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/userNameProfile"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="20dp"
+                    android:text=""
+                    android:textColor="@color/black"
+                    android:textSize="14sp" />
+
+            </LinearLayout>
+
+
+        </LinearLayout>
+
     <LinearLayout
         android:id="@+id/linear1"
         android:layout_width="match_parent"
         android:layout_height="70dp"
         android:layout_marginStart="30dp"
-        android:layout_marginTop="30dp"
+        android:layout_marginTop="10dp"
         android:layout_marginEnd="10dp"
-        android:gravity="center"
+        android:gravity="center_vertical"
         android:orientation="horizontal"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/image">
+        app:layout_constraintTop_toBottomOf="@id/linear0">
 
 
         <ImageView
@@ -112,7 +159,7 @@
             android:src="@drawable/about" />
 
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
@@ -129,11 +176,23 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="20dp"
-                android:text="Write something about your self"
+                android:text=""
                 android:textColor="@color/black"
                 android:textSize="14sp" />
 
         </LinearLayout>
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <ImageView
+            android:id="@+id/edit"
+            android:layout_width="23dp"
+            android:layout_height="23dp"
+            android:layout_marginEnd="10dp"
+            android:src="@drawable/baseline_edit_24" />
 
     </LinearLayout>
 
