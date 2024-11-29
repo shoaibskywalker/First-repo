@@ -29,6 +29,11 @@
             <item name="android:textCursorDrawable">@drawable/custom_cursor</item>
 
         </style>
+    <style name="CustomEditTextStyleForUser" parent="Widget.AppCompat.EditText">
+        <!-- Define cursor color here -->
+        <item name="android:textCursorDrawable">@drawable/custom_cursor_for_user</item>
+
+    </style>
 
 
 
