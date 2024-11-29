@@ -8,6 +8,7 @@
     <color name="teal_200">#FF03DAC5</color>
     <color name="teal_700">#FF018786</color>
     <color name="normalColor">#6D0D50</color>
+    <color name="caller_color">#24001A</color>
     <color name="yellow">#FFC801</color>
     <color name="red">#CD0E00</color>
     <color name="fully_transparent">#00FFFFFF</color> <!-- Fully transparent -->
