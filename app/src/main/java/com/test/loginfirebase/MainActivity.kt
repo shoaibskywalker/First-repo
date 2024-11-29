@@ -1,12 +1,15 @@
 package com.test.loginfirebase
 
+import android.app.Application
 import android.app.NotificationManager
+import android.app.ProgressDialog
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.drawable.ColorDrawable
 import android.net.ConnectivityManager
-import androidx.appcompat.app.AppCompatActivity
+import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.text.Editable
@@ -19,9 +22,9 @@ import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.RatingBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
@@ -29,6 +32,10 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.workDataOf
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -41,15 +48,33 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.messaging.FirebaseMessaging
+import com.google.firebase.storage.FirebaseStorage
+import com.test.loginfirebase.adapter.StatusAdapter
 import com.test.loginfirebase.adapter.UserAdapter
 import com.test.loginfirebase.broadcastReceiver.BatteryLevelReceiver
 import com.test.loginfirebase.data.Message
 import com.test.loginfirebase.data.User
+import com.test.loginfirebase.data.model.Status
 import com.test.loginfirebase.databinding.ActivityMainBinding
 import com.test.loginfirebase.utils.CommonUtil
+import com.test.loginfirebase.utils.FirebaseStoryWorker
 import com.test.loginfirebase.utils.FirebaseUtil
 import com.test.loginfirebase.utils.sessionManager.UserSessionManager
+import com.zegocloud.uikit.plugin.invitation.ZegoInvitationType
+import com.zegocloud.uikit.prebuilt.call.ZegoUIKitPrebuiltCallConfig
+import com.zegocloud.uikit.prebuilt.call.ZegoUIKitPrebuiltCallService
+import com.zegocloud.uikit.prebuilt.call.config.DurationUpdateListener
+import com.zegocloud.uikit.prebuilt.call.config.ZegoCallDurationConfig
+import com.zegocloud.uikit.prebuilt.call.config.ZegoMenuBarButtonName
+import com.zegocloud.uikit.prebuilt.call.core.invite.ZegoCallInvitationData
+import com.zegocloud.uikit.prebuilt.call.invite.ZegoUIKitPrebuiltCallInvitationConfig
+import com.zegocloud.uikit.prebuilt.call.invite.internal.ZegoUIKitPrebuiltCallConfigProvider
 import de.hdodenhof.circleimageview.CircleImageView
+import omari.hamza.storyview.StoryView
+import omari.hamza.storyview.callback.StoryClickListeners
+import omari.hamza.storyview.model.MyStory
+import java.util.Date
+import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
 
@@ -59,7 +84,6 @@ class MainActivity : AppCompatActivity() {
     lateinit var filterList: ArrayList<User>
     private lateinit var binding: ActivityMainBinding
     private lateinit var mAuth: FirebaseAuth
-    private lateinit var currentUserRef: DatabaseReference
     private lateinit var databaseReference: DatabaseReference
     private lateinit var databaseRef: DatabaseReference
     private lateinit var toggle: ActionBarDrawerToggle
@@ -79,6 +103,10 @@ class MainActivity : AppCompatActivity() {
     var senderRoom: String? = null
     var receiverUid: String? = null
     private lateinit var currentUserUid: String
+    private lateinit var statusAdapter: StatusAdapter
+    private lateinit var userStatus: ArrayList<MyStory>
+    private var canNavigateToStoryView = true
+    private val statusList = mutableListOf<Status>()
 
 
     private val unreadStatusReceiver = object : BroadcastReceiver() {
@@ -92,7 +120,13 @@ class MainActivity : AppCompatActivity() {
         super.onRestart()
         // Refresh user list when returning to main activity
         mAdapter.notifyDataSetChanged()
-        Log.d("TAG","On Restart call")
+        Log.d("TAG", "On Restart call")
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Refresh user list when returning to main activity
+        checkUserStories()
     }
 
 
@@ -111,9 +145,83 @@ class MainActivity : AppCompatActivity() {
             moveToAiChat()
         }
 
+        binding.addStory.setOnClickListener {
+            openImagePicker()
 
-       // val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
-        Log.d("uid",currentUserUid)
+        }
+        userStatus = ArrayList()
+        binding.profileStoryImage.setOnClickListener {
+            fetchStories()
+        }
+
+
+        statusAdapter = StatusAdapter(this, statusList)
+        binding.recyclerViewStatus.layoutManager =
+            LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        binding.recyclerViewStatus.adapter = statusAdapter
+        loadActiveStories()
+
+
+        val application: Application = this.application // Android's application context
+        val appID: Long = 165322314 // Replace with your actual app ID
+        val appSign = "111d125b753a66a526fbdaea8c55da579fef1eb07669c9967bd31befc86984ee" // Replace with your actual app sign
+        val userID: String = FirebaseUtil().currentUserId()!! // Replace with your actual user ID
+        val userName: String = prefs.userNameLogin!! // Replace with your actual user name
+
+        val callInvitationConfig = ZegoUIKitPrebuiltCallInvitationConfig()
+        callInvitationConfig.provider = object : ZegoUIKitPrebuiltCallConfigProvider{
+            override fun requireConfig(invitationData: ZegoCallInvitationData?): ZegoUIKitPrebuiltCallConfig {
+                val isVideoCall = invitationData!!.type == ZegoInvitationType.VIDEO_CALL.value
+                val isGroupCall = invitationData.invitees.size > 1
+
+                val config = when {
+                    isVideoCall && isGroupCall -> ZegoUIKitPrebuiltCallConfig.groupVideoCall()
+                    !isVideoCall && isGroupCall -> ZegoUIKitPrebuiltCallConfig.groupVoiceCall()
+                    !isVideoCall -> ZegoUIKitPrebuiltCallConfig.oneOnOneVoiceCall()
+                    else -> ZegoUIKitPrebuiltCallConfig.oneOnOneVideoCall()
+                }
+                config.topMenuBarConfig.isVisible = true
+                config.topMenuBarConfig.buttons.add(ZegoMenuBarButtonName.MINIMIZING_BUTTON)
+
+                config.durationConfig = ZegoCallDurationConfig().apply {
+                    isVisible = true
+                    durationUpdateListener = DurationUpdateListener { seconds ->
+                        if (seconds == (60 * 5).toLong()) {
+                            ZegoUIKitPrebuiltCallService.endCall()
+                        }
+                    }
+                }
+                return config
+            }
+
+        }
+
+        callInvitationConfig.outgoingCallBackground = ColorDrawable(ContextCompat.getColor(this, R.color.caller_color))
+        callInvitationConfig.incomingCallBackground = ColorDrawable(ContextCompat.getColor(this, R.color.caller_color))
+
+
+
+        ZegoUIKitPrebuiltCallService.init(
+            application,
+            appID,
+            appSign,
+            userID,
+            userName,
+            callInvitationConfig
+        )
+
+        FirebaseMessaging.getInstance().subscribeToTopic("quotes")
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    Log.d("FCM", "Successfully subscribed to quotes topic.")
+                } else {
+                    Log.d("FCM", "Failed to subscribe to quotes topic.")
+                }
+            }
+       // scheduleRandomQuoteWorker()
+
+
+                    // val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
         userDatabaseRef = FirebaseDatabase.getInstance().getReference("Users").child(currentUserUid)
         // Set user to "online"
         userDatabaseRef.child("status").setValue("online")
@@ -139,12 +247,6 @@ class MainActivity : AppCompatActivity() {
         val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
         registerReceiver(batteryLevelReceiver, filter)
 
-//Online Status
-        /*currentUserRef = FirebaseDatabase.getInstance().getReference().child("Users")
-            .child(FirebaseAuth.getInstance().currentUser?.uid!!)
-        currentUserRef.child("online")
-            .setValue(true) // Set online status to true when the app is opened
-        currentUserRef.child("online").onDisconnect().setValue(false)*/
         //signup fetching name and email
         val nameSignUp = intent.getStringExtra("name")
         emailSignUp = intent.getStringExtra("email").toString()
@@ -205,35 +307,18 @@ class MainActivity : AppCompatActivity() {
         headerEmailTextView = headerView.findViewById(R.id.email)
         headerImageView = headerView.findViewById(R.id.imageView)
 
-        headerImageView.setOnClickListener {
-            moveToProfile2Activity()
-        }
 
-        /*val savedImage = prefs.getUserProfileImage(prefs.userEmailLogin)
-        savedImage?.let {
-            headerImageView.setImageBitmap(it)
-        }*/
-
-        /* Glide.with(this)
-             .load(savedImage) // Assuming prefs.userProfilePic is the image URL or URI
-             .placeholder(R.drawable.ic_placeholder) // Placeholder image resource
-             .error(R.drawable.ic_placeholder) // Error image resource
-             .into(headerImageView)*/
         headerNameTextView.text = "Placeholder"
 
         emailLogin = prefs.userEmailLogin
         nameLogin = prefs.userNameLogin.toString()
         if (emailLogin.isNotEmpty()) {
             headerEmailTextView.text = emailLogin
-            Log.d("Check", "Displayed email in header: $emailLogin") // Debug log
         } else {
-            Log.d("Check", "No email found in SharedPreferences")
         }
         if (nameLogin.isNotEmpty()) {
             headerNameTextView.text = nameLogin
-            Log.d("Check Name", "Displayed name in header: $nameLogin") // Debug log
         } else {
-            Log.d("Check Name", "No name found in SharedPreferences")
         }
 
         if (source == "signup") {
@@ -249,12 +334,8 @@ class MainActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         navview.setNavigationItemSelectedListener {
             when (it.itemId) {
-                R.id.bags -> {
-                    moveToProfileActivity()
-                }
 
                 R.id.about -> moveToAboutActivity()
-                R.id.videoCall -> moveToVideoCallActivity()
                 R.id.share -> shareOurApp()
                 R.id.rate -> showRatingDialog()
                 R.id.logout -> showAlertDialog(
@@ -263,10 +344,7 @@ class MainActivity : AppCompatActivity() {
                     negativeButton = "No",
                     positiveButton = "Yes"
                 )
-
-                R.id.voiceCall -> moveToVoiceCallActivity()
-
-
+                R.id.profile -> moveToProfile2Activity()
                 R.id.rate -> {
                     drawlayout.closeDrawer(GravityCompat.START)
                 }
@@ -292,7 +370,7 @@ class MainActivity : AppCompatActivity() {
         if (isNetworkConnected()) {
             userList = ArrayList()
             filterList = ArrayList()
-            mAdapter = UserAdapter(this, userList, filterList)
+            mAdapter = UserAdapter(this, filterList)
 
             recyclerView.layoutManager = LinearLayoutManager(this)
             recyclerView.adapter = mAdapter
@@ -311,7 +389,7 @@ class MainActivity : AppCompatActivity() {
                         if (mAuth.currentUser?.uid != currentUser?.uid) {
 
                             userList.add(currentUser!!)
-                            filterList.add(currentUser!!)
+                            filterList.add(currentUser)
                         }
 
                     }
@@ -326,10 +404,11 @@ class MainActivity : AppCompatActivity() {
             })
 
             // Listen for new messages in the chat room
-          listenForNewMessages(currentUserId!!)
+            listenForNewMessages(currentUserId!!)
 
 
             getFcmToken()
+
 
         } else {
             showAlertDialog(
@@ -342,16 +421,60 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+    private fun loadActiveStories() {
+        // loading current active story in recycler view
+        val databaseReference = FirebaseDatabase.getInstance().getReference("Users")
+
+        databaseReference.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                statusList.clear() // Clear the list to avoid duplicates
+
+                for (userSnapshot in snapshot.children) {
+                    val uid = userSnapshot.key
+                    // Skip the current user's story
+                    if (uid == FirebaseUtil().currentUserId()) continue
+                    val storySnapshot = userSnapshot.child("story")
+
+                    if (storySnapshot.exists()) {
+                        // Check if the user already has a story in the list
+                        var isUserAdded = false
+
+                        for (story in storySnapshot.children) {
+                            val storyUserId = story.child("userId").value as? String
+                            val name = userSnapshot.child("name").value as? String
+                            val imageUrl = userSnapshot.child("profileImageUrl").value as? String
+
+                            if (storyUserId != null && name != null && imageUrl != null && !isUserAdded) {
+                                prefs.saveReceiverProfilePictureUrl(storyUserId, imageUrl)
+                                statusList.add(Status(imageUrl = imageUrl, name = name, userId = storyUserId))
+                                isUserAdded = true // Mark user as added to prevent duplicates
+                            }
+                        }
+                    }
+                }
+
+                // Notify the adapter after data change
+                statusAdapter.notifyDataSetChanged()
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("MainActivity", "Failed to load stories: ${error.message}")
+            }
+        })
+    }
+
+
     private fun listenForNewMessages(currentUserId: String) {
         for (user in filterList) {
             val senderRoom = currentUserId + user.uid
-            val chatRoomRef = FirebaseDatabase.getInstance().getReference("chats").child(senderRoom).child("messages")
+            val chatRoomRef = FirebaseDatabase.getInstance().getReference("chats").child(senderRoom)
+                .child("messages")
 
             chatRoomRef.addChildEventListener(object : ChildEventListener {
                 override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
                     // Update last message in the user adapter when a new message is added
                     val lastMessage = snapshot.getValue(Message::class.java)?.message ?: ""
-                    mAdapter.updateLastMessage(user.uid!!, lastMessage)
+                    mAdapter.updateLastMessage(user.uid!!)
                 }
 
                 override fun onCancelled(error: DatabaseError) {}
@@ -370,7 +493,7 @@ class MainActivity : AppCompatActivity() {
                 val token = task.result
                 // Save the token to Firebase Realtime Database or Firestore under the user's ID
                 Log.d("User token", token)
-               // val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+                // val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
                 currentUserUid.let { uid ->
                     FirebaseDatabase.getInstance().getReference("Users").child(uid)
                         .child("fcmToken").setValue(token)
@@ -393,7 +516,7 @@ class MainActivity : AppCompatActivity() {
                     if (mAuth.currentUser?.uid != currentUser?.uid) {
 
                         userList.add(currentUser!!)
-                        filterList.add(currentUser!!)
+                        filterList.add(currentUser)
                     }
 
                 }
@@ -447,10 +570,9 @@ class MainActivity : AppCompatActivity() {
                 logoutUser()
             }
         }
-        builder.setCancelable(if (title == "No Internet Connection") false else true)
+        builder.setCancelable(title != "No Internet Connection")
         builder.show()
     }
-
 
 
     private fun openDataSettings() {
@@ -462,25 +584,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun logoutUser() {
-       // val uidd = FirebaseAuth.getInstance().currentUser?.uid
+        // val uidd = FirebaseAuth.getInstance().currentUser?.uid
 
-            // Set user status to offline in Firebase
-            FirebaseDatabase.getInstance().getReference("Users").child(currentUserUid).child("status").setValue("offline")
-        FirebaseDatabase.getInstance().getReference("Users").child(currentUserUid).child("online").setValue(false)
+        // Set user status to offline in Firebase
+        FirebaseDatabase.getInstance().getReference("Users").child(currentUserUid).child("status")
+            .setValue("offline")
+        FirebaseDatabase.getInstance().getReference("Users").child(currentUserUid).child("online")
+            .setValue(false)
 
         // Delete the FCM token to stop receiving notifications
         FirebaseMessaging.getInstance().deleteToken()
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    Log.d("FCM Token", "Token deleted successfully.")
+                    println("Token Deleted")
                 } else {
-                    Log.e("FCM Token", "Failed to delete token: ${task.exception}")
                 }
             }
         mAuth.signOut()
         navigateToLoginScreen()
-      //  Toast.makeText(this@MainActivity, "Log out Successfully", Toast.LENGTH_LONG).show()
-        CommonUtil.showToastMessage(this,"Log out Successfully")
+        //  Toast.makeText(this@MainActivity, "Log out Successfully", Toast.LENGTH_LONG).show()
+        CommonUtil.showToastMessage(this, "Log out Successfully")
+        ZegoUIKitPrebuiltCallService.unInit()
 
     }
 
@@ -517,13 +641,13 @@ class MainActivity : AppCompatActivity() {
         buttonSubmit.setOnClickListener {
             val rating = ratingBar.rating
             if (rating.toInt() == 0) {
-               // Toast.makeText(this, "Please atleast give 0.5 star", Toast.LENGTH_SHORT).show()
-                CommonUtil.showToastMessage(this,"Please atleast give 0.5 star")
+                // Toast.makeText(this, "Please atleast give 0.5 star", Toast.LENGTH_SHORT).show()
+                CommonUtil.showToastMessage(this, "Please atleast give 0.5 star")
 
             } else {
-               /* Toast.makeText(this, "Thank you for your rating: $rating", Toast.LENGTH_SHORT)
-                    .show()*/
-                CommonUtil.showToastMessage(this,"Thank you for your rating: $rating")
+                /* Toast.makeText(this, "Thank you for your rating: $rating", Toast.LENGTH_SHORT)
+                     .show()*/
+                CommonUtil.showToastMessage(this, "Thank you for your rating: $rating")
 
                 alertDialog.dismiss()
             }
@@ -544,19 +668,6 @@ class MainActivity : AppCompatActivity() {
         startActivity(Intent(this, About::class.java))
     }
 
-    private fun moveToVoiceCallActivity() {
-        startActivity(Intent(this, VoiceCall::class.java))
-    }
-
-    private fun moveToVideoCallActivity() {
-        startActivity(Intent(this, VideoCall::class.java))
-    }
-
-    private fun moveToProfileActivity() {
-        startActivity(Intent(this, Profile::class.java).putExtra("login", emailLogin))
-
-    }
-
     private fun moveToProfile2Activity() {
         startActivity(Intent(this, Profile2::class.java))
 
@@ -570,7 +681,7 @@ class MainActivity : AppCompatActivity() {
                         val imageUrl = snapshot.value as? String
                         if (imageUrl != null && imageUrl.isNotEmpty()) {
 
-                            imageUrl?.let {
+                            imageUrl.let {
                                 Glide.with(this@MainActivity)
                                     .load(it)
                                     .placeholder(R.drawable.portrait_placeholder)
@@ -578,6 +689,14 @@ class MainActivity : AppCompatActivity() {
                                     .skipMemoryCache(true)  // Ensure it's not loading from cache
                                     .diskCacheStrategy(DiskCacheStrategy.ALL)  // Avoid disk caching
                                     .into(headerImageView)  // Load updated image
+                                prefs.currentUserPicture = it
+                                Glide.with(this@MainActivity)
+                                    .load(it)
+                                    .placeholder(R.drawable.portrait_placeholder)
+                                    .error(R.drawable.portrait_placeholder)
+                                    .skipMemoryCache(true)  // Ensure it's not loading from cache
+                                    .diskCacheStrategy(DiskCacheStrategy.ALL)  // Avoid disk caching
+                                    .into(binding.profileStoryImage)
                             }
                         } else {
                             headerImageView.setImageResource(R.drawable.portrait_placeholder)
@@ -618,12 +737,200 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         // Unregister the receiver when the activity is destroyed
-      //  val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
-        FirebaseDatabase.getInstance().getReference("Users").child(currentUserUid).child("status").setValue("offline")
-        FirebaseDatabase.getInstance().getReference("Users").child(currentUserUid).child("online").setValue(false)
+        //  val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+        FirebaseDatabase.getInstance().getReference("Users").child(currentUserUid).child("status")
+            .setValue("offline")
+        FirebaseDatabase.getInstance().getReference("Users").child(currentUserUid).child("online")
+            .setValue(false)
 
         unregisterReceiver(batteryLevelReceiver)
         LocalBroadcastManager.getInstance(this).unregisterReceiver(unreadStatusReceiver)
 
     }
+
+    private val PICK_IMAGE_REQUEST = 1
+
+    // Other methods...
+
+    fun openImagePicker() {
+        val intent = Intent()
+        intent.type = "image/*"
+        intent.action = Intent.ACTION_GET_CONTENT
+        startActivityForResult(Intent.createChooser(intent, "Select Picture"), PICK_IMAGE_REQUEST)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null && data.data != null) {
+            uploadImageToFirebase(data.data)
+        }
+    }
+
+    private fun uploadImageToFirebase(imageUri: Uri?) {
+        val progressDialog = ProgressDialog(this)
+        progressDialog.setMessage("Uploading story...") // Set your message
+        progressDialog.setCancelable(false) // Prevents dismissal
+        progressDialog.show()
+        val userId = FirebaseUtil().currentUserId()
+        if (userId != null && imageUri != null) {
+            val storageReference = FirebaseStorage.getInstance()
+                .getReference("Stories/$userId/${System.currentTimeMillis()}")
+            storageReference.putFile(imageUri)
+                .addOnSuccessListener { taskSnapshot ->
+                    storageReference.downloadUrl.addOnSuccessListener { downloadUrl ->
+                        saveStoryToDatabase(downloadUrl.toString())
+                        progressDialog.dismiss()
+                        checkUserStories()
+                    }
+                }
+                .addOnFailureListener { e ->
+                    Log.e("MainActivity", "Upload failed: ${e.message}")
+                    progressDialog.dismiss()
+                }
+        }
+    }
+
+    private fun saveStoryToDatabase(imageUrl: String) {
+        val userId = FirebaseUtil().currentUserId()
+        if (userId != null) {
+            val databaseReference =
+                FirebaseDatabase.getInstance().getReference("Users").child(userId).child("story")
+            val storyId = databaseReference.push().key
+            val uploadTime = System.currentTimeMillis() // Get current time in milliseconds
+
+            if (storyId != null) {
+                /*val storyDetails = mapOf(
+                    "imageUrl" to imageUrl,
+                    "uploadTime" to uploadTime,
+                    "uid" to userId
+                )*/
+                databaseReference.child(storyId).setValue(
+                    Status(
+                        imageUrl = imageUrl,
+                        name = prefs.userNameLogin!!,
+                        timestamp = uploadTime,
+                        userId = userId,
+                    )
+                ).addOnSuccessListener {
+                        Log.d("MainActivity", "Story saved successfully.")
+                        CommonUtil.showToastMessage(this, "Story uploaded successfully!'")
+                    scheduleStoryDeletion(userId, storyId)
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("MainActivity", "Failed to save story: ${e.message}")
+                    }
+            }
+        }
+    }
+
+    private fun scheduleStoryDeletion(userId: String, storyId: String) {
+        val workRequest = OneTimeWorkRequestBuilder<FirebaseStoryWorker>()
+            .setInitialDelay(4, TimeUnit.HOURS) // Set the delay to 24 hours
+            .setInputData(workDataOf("userId" to userId, "storyId" to storyId))
+            .build()
+
+        WorkManager.getInstance(this).enqueue(workRequest)
+    }
+
+
+    private fun deleteStory(userId: String, storyId: String) {
+        val databaseReference =
+            FirebaseDatabase.getInstance().getReference("Users").child(userId).child("story")
+                .child(storyId)
+        databaseReference.removeValue()
+            .addOnSuccessListener {
+                Log.d("MainActivity", "Story deleted successfully after 10 seconds.")
+                CommonUtil.showToastMessage(this, "Story remove successfully!'")
+                canNavigateToStoryView = false
+                checkUserStories()
+            }
+            .addOnFailureListener { e ->
+                Log.e("MainActivity", "Failed to delete story: ${e.message}")
+            }
+    }
+
+    private fun fetchStories() {
+        // fetching current user story
+        val userId = FirebaseUtil().currentUserId()
+        if (userId != null) {
+            val databaseReference =
+                FirebaseDatabase.getInstance().getReference("Users").child(userId).child("story")
+
+            databaseReference.addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val storiesList = ArrayList<MyStory>() // Change to ArrayList
+
+                    for (storySnapshot in snapshot.children) {
+                        val storyData = storySnapshot.getValue(Status::class.java)
+                        /* val imageUrl = storyData?.get("imageUrl") as? String
+                         val uploadTime = storyData?.get("uploadTime") as? Long*/
+                        if (storyData?.imageUrl != null && storyData.timestamp != null) {
+                            val dateConvert = Date(storyData.timestamp)
+                            storiesList.add(
+                                MyStory(
+                                    storyData.imageUrl,
+                                    dateConvert
+                                )
+                            ) // Assuming MyStory has a constructor with imageUrl
+                        }
+                    }
+
+                    // Call a method to display the stories
+                    showStories(storiesList)
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                }
+            })
+        }
+    }
+
+    private fun showStories(storiesList: ArrayList<MyStory>) {
+        if (storiesList.isNotEmpty()) {
+            StoryView.Builder(supportFragmentManager)
+                .setStoriesList(storiesList) // Required
+                .setStoryDuration(5000) // Default is 2000 Millis (2 Seconds)
+                .setTitleText(prefs.userNameLogin) // Default is Hidden
+                .setSubtitleText("") // Default is Hidden
+                .setTitleLogoUrl(prefs.currentUserPicture) // Default is Hidden
+                .setStoryClickListeners(object : StoryClickListeners {
+                    override fun onDescriptionClickListener(position: Int) {
+                        // Handle description click
+                    }
+
+                    override fun onTitleIconClickListener(position: Int) {
+                        // Handle title icon click
+                    }
+                }) // Optional Listeners
+                .build() // Must be called before calling show method
+                .show()
+        } else {
+        }
+    }
+
+
+    private fun checkUserStories() {
+        // Adding current story border
+        val userId = FirebaseUtil().currentUserId()
+        if (userId != null) {
+            val databaseReference =
+                FirebaseDatabase.getInstance().getReference("Users").child(userId).child("story")
+            databaseReference.addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    // Check if the user has stories
+                    if (snapshot.exists() && snapshot.childrenCount > 0) {
+                        // User has stories, make the activeStory view visible
+                        findViewById<View>(R.id.activeStory).visibility = View.VISIBLE
+                    } else {
+                        // User has no stories, hide the activeStory view
+                        findViewById<View>(R.id.activeStory).visibility = View.GONE
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                }
+            })
+        }
+    }
+
 }
