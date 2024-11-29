@@ -4,22 +4,18 @@ import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
-import com.bumptech.glide.Glide
-import com.google.firebase.auth.FirebaseAuth
 import com.test.loginfirebase.R
 import com.test.loginfirebase.data.Message
 import com.test.loginfirebase.utils.FirebaseUtil
-import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) :
-    RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+    RecyclerView.Adapter<ViewHolder>() {
 
     val ITEM_RECEIVE = 1
     val ITEM_SEND = 2
@@ -99,20 +95,20 @@ class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) 
     }
 
 
-    class SendViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    class SendViewHolder(itemView: View) : ViewHolder(itemView) {
 
-        val sendText = itemView.findViewById<TextView>(R.id.textSend)
-        val timeSend = itemView.findViewById<TextView>(R.id.sendTimeSend)
-        val dateSend = itemView.findViewById<TextView>(R.id.dateSend)
+        val sendText = itemView.findViewById<TextView>(R.id.textSend)!!
+        val timeSend = itemView.findViewById<TextView>(R.id.sendTimeSend)!!
+        val dateSend = itemView.findViewById<TextView>(R.id.dateSend)!!
 
 
     }
 
-    class ReceiveViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    class ReceiveViewHolder(itemView: View) : ViewHolder(itemView) {
 
-        val receiveText = itemView.findViewById<TextView>(R.id.textReceive)
-        val timeReceive = itemView.findViewById<TextView>(R.id.sendTimeReceive)
-        val dateReceive = itemView.findViewById<TextView>(R.id.dateReceive)
+        val receiveText = itemView.findViewById<TextView>(R.id.textReceive)!!
+        val timeReceive = itemView.findViewById<TextView>(R.id.sendTimeReceive)!!
+        val dateReceive = itemView.findViewById<TextView>(R.id.dateReceive)!!
 
 
     }
