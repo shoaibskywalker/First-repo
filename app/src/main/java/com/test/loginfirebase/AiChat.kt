@@ -3,12 +3,10 @@ package com.test.loginfirebase
 import android.os.Bundle
 import android.util.Log
 import android.widget.ProgressBar
-import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.ai.client.generativeai.GenerativeModel
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
@@ -16,7 +14,6 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.test.loginfirebase.adapter.AiChatAdapter
 import com.test.loginfirebase.data.AiMessage
-import com.test.loginfirebase.data.Message
 import com.test.loginfirebase.databinding.ActivityAiChatBinding
 import com.test.loginfirebase.utils.CommonUtil
 import com.test.loginfirebase.utils.FirebaseUtil
@@ -49,7 +46,7 @@ class AiChat : AppCompatActivity() {
             .child(currentUid!!).child("messages")
 
 
-        chatAdapter = AiChatAdapter(messageList, this)
+        chatAdapter = AiChatAdapter(messageList)
         binding.recyclerChat.adapter = chatAdapter
         binding.recyclerChat.layoutManager = LinearLayoutManager(this)
 
@@ -147,8 +144,8 @@ class AiChat : AppCompatActivity() {
 
     private fun deleteMessage(currentUserName: String, currentUid: String) {
         val messageRef =
-            FirebaseDatabase.getInstance().getReference("AiChats").child(currentUserName!!)
-                .child(currentUid!!)
+            FirebaseDatabase.getInstance().getReference("AiChats").child(currentUserName)
+                .child(currentUid)
 
         messageRef.removeValue().addOnCompleteListener { task ->
             if (task.isSuccessful) {
