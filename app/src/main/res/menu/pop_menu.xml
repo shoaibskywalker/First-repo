@@ -3,23 +3,14 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:showIn="navigation_view">
 
-
-
-    <item android:id="@+id/bags"
-        android:icon="@drawable/baseline_shopping_bag_24"
-        android:title="Bags" />
+    <item android:id="@+id/profile"
+        android:icon="@drawable/person"
+        android:title="Profile"/>
 
     <item android:id="@+id/about"
         android:icon="@drawable/baseline_info_outline_24"
         android:title="About"/>
 
-    <item android:id="@+id/videoCall"
-        android:icon="@drawable/baseline_videocall"
-        android:title="Video Call " />
-
-    <item android:id="@+id/voiceCall"
-        android:icon="@drawable/baseline_call_24"
-        android:title="Voice Call " />
 
     <group android:checkableBehavior="single">
 
