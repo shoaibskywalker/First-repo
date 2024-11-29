@@ -30,7 +30,6 @@ import java.util.Calendar
 
 class UserAdapter(
     val context: Context,
-    val name: ArrayList<User>,
     private var filteredList: ArrayList<User>
 ) : RecyclerView.Adapter<UserAdapter.UserViewholder>() {
     private val databaseReference: DatabaseReference by lazy {
@@ -57,11 +56,12 @@ class UserAdapter(
     }
 
     override fun onBindViewHolder(holder: UserViewholder, position: Int) {
-        val currentUser = filteredList[position]
-        holder.text.text = currentUser.name
+        val users = filteredList[position]
+        holder.text.text = users.name
+
 
         // Fetch and display the profile image of the current user in the list
-        currentUser.uid?.let {
+        users.uid?.let {
             databaseReference.child(it).child("profileImageUrl")
                 .addValueEventListener(object : ValueEventListener {
                     override fun onDataChange(snapshot: DataSnapshot) {
@@ -75,7 +75,7 @@ class UserAdapter(
                                 .diskCacheStrategy(DiskCacheStrategy.ALL)
                                 .into(holder.userImage)  // Load updated image
                             // Update the currentUser object with the image URL
-                            currentUser.profileImageUrl = it
+                            users.profileImageUrl = it
                         }
                     }
 
@@ -90,12 +90,12 @@ class UserAdapter(
         }
 
         holder.userImage.setOnClickListener {
-            showImageDialog(currentUser.profileImageUrl)
+            showImageDialog(users.profileImageUrl)
         }
 
 
         val userStatusRef =
-            FirebaseDatabase.getInstance().getReference("Users").child(currentUser.uid!!)
+            FirebaseDatabase.getInstance().getReference("Users").child(users.uid!!)
                 .child("status")
 
         userStatusRef.addValueEventListener(object : ValueEventListener {
@@ -119,25 +119,26 @@ class UserAdapter(
         })
 
 
-        holder.bind(currentUser)
+        holder.bind(users)
 
         holder.itemView.setOnClickListener {
 
             val intent = Intent(context, ChatActivity::class.java)
 
-            intent.putExtra("name", currentUser.name)
-            intent.putExtra("uid", currentUser.uid)
-            intent.putExtra("imageUrl", currentUser.profileImageUrl)
+            intent.putExtra("name", users.name)
+            intent.putExtra("uid", users.uid)
+            intent.putExtra("imageUrl", users.profileImageUrl)
 
             context.startActivity(intent)
         }
+        holder.checkUserStories(users.uid)
 
-        senderRoom = currentUser.uid + currentUserId
-        receiverRoom = currentUserId + currentUser.uid
+        senderRoom = users.uid + currentUserId
+        receiverRoom = currentUserId + users.uid
 
         fetchLastMessage(
             senderRoom!!,
-            currentUser.uid!!
+            users.uid!!
         ) { lastMessage, lastMessageTime, lastDate, isFromSender ->
 
             holder.lastMessage.text = lastMessage
@@ -157,23 +158,49 @@ class UserAdapter(
             UserSessionManager(context)
         }
 
-        val text = itemview.findViewById<TextView>(R.id.txtName)
-        var userImage = itemview.findViewById<CircleImageView>(R.id.imageProfile)
-        val greenDotView: View = itemView.findViewById(R.id.greenDotView)
+        val text = itemview.findViewById<TextView>(R.id.txtName)!!
+        var userImage = itemview.findViewById<CircleImageView>(R.id.imageProfile)!!
+        private val greenDotView: View = itemView.findViewById(R.id.greenDotView)
         val onlineDotView: View = itemView.findViewById(R.id.onlineDotView)
-        val lastMessage = itemView.findViewById<TextView>(R.id.lastmessage)
-        val lastMessageTime = itemView.findViewById<TextView>(R.id.lastmessagetime)
-        val lastMessageDate = itemView.findViewById<TextView>(R.id.lastmessageDate)
-        val you = itemView.findViewById<TextView>(R.id.you)
+        val lastMessage = itemView.findViewById<TextView>(R.id.lastmessage)!!
+        val lastMessageTime = itemView.findViewById<TextView>(R.id.lastmessagetime)!!
+        val lastMessageDate = itemView.findViewById<TextView>(R.id.lastmessageDate)!!
+        val you = itemView.findViewById<TextView>(R.id.you)!!
+        val activeStory = itemView.findViewById<View>(R.id.activeStory)!!
 
 
         fun bind(user: User) {
             // Check if this user has an unread message and show the green dot if true
-            val unreadUsers = prefs.getUnreadUsers(itemView.context)
+            val unreadUsers = prefs.getUnreadUsers()
             if (unreadUsers.contains(user.uid)) {
                 greenDotView.visibility = View.VISIBLE
             } else {
                 greenDotView.visibility = View.GONE
+            }
+        }
+
+        // Method to check if the user has stories
+        fun checkUserStories(userId: String?) {
+            if (userId != null) {
+                val databaseReference = FirebaseDatabase.getInstance().getReference("Users").child(userId).child("story")
+                databaseReference.addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        // Check if the user has stories
+                        if (snapshot.exists() && snapshot.childrenCount > 0) {
+                            // User has stories, make the activeStory view visible
+                            activeStory.visibility = View.VISIBLE
+                        } else {
+                            // User has no stories, hide the activeStory view
+                            activeStory.visibility = View.GONE
+                        }
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {
+                        Log.e("UserAdapter", "Failed to check stories: ${error.message}")
+                    }
+                })
+            } else {
+                activeStory.visibility = View.GONE // Hide if no user ID
             }
         }
     }
@@ -284,7 +311,7 @@ class UserAdapter(
         return sdf.format(date)
     }
 
-    fun updateLastMessage(receiverUid: String, lastMessage: String) {
+    fun updateLastMessage(receiverUid: String) {
         val index = filteredList.indexOfFirst { it.uid == receiverUid }
         if (index != -1) {
             // Update the last message for this user
