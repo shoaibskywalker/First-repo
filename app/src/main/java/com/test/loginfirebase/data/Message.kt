@@ -1,6 +1,5 @@
 package com.test.loginfirebase.data
 
-import java.util.Date
 
 data class Message(
     var message: String? = null,
