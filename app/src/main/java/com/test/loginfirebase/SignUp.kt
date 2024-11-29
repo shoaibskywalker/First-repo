@@ -9,12 +9,10 @@ import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ProgressBar
-import android.widget.Toast
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.test.loginfirebase.data.User
-import com.test.loginfirebase.databinding.ActivityMainBinding
 import com.test.loginfirebase.databinding.ActivitySignUpBinding
 import com.test.loginfirebase.utils.CommonUtil
 import com.test.loginfirebase.utils.FirebaseUtil
