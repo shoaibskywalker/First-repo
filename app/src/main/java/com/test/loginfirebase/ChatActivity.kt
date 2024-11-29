@@ -6,16 +6,13 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Rect
-import android.media.MediaPlayer
-import android.net.Uri
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.provider.MediaStore
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewTreeObserver
 import android.view.animation.AccelerateDecelerateInterpolator
@@ -24,16 +21,12 @@ import android.widget.ImageView
 import android.widget.PopupMenu
 import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
@@ -51,6 +44,7 @@ import com.test.loginfirebase.fcm.getReceiverFcmToken
 import com.test.loginfirebase.utils.CommonUtil
 import com.test.loginfirebase.utils.FirebaseUtil
 import com.test.loginfirebase.utils.sessionManager.UserSessionManager
+import com.zegocloud.uikit.service.defines.ZegoUIKitUser
 import de.hdodenhof.circleimageview.CircleImageView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -73,7 +67,6 @@ class ChatActivity : AppCompatActivity() {
     private lateinit var messageList: ArrayList<Message1>
     lateinit var databaseReference: DatabaseReference
     lateinit var imageBack: ImageView
-    private lateinit var mediaPlayer: MediaPlayer
     private lateinit var prefs: UserSessionManager
     private lateinit var addicon: ImageView
     private var isKeyboardOpen = false
@@ -81,6 +74,7 @@ class ChatActivity : AppCompatActivity() {
     private lateinit var rotationAnimator: ObjectAnimator
     private lateinit var realAccessToken: String
     private var receiverUid: String? = null  // Store userId
+    private var about: String? = null
 
 
     var senderRoom: String? = null
@@ -114,7 +108,6 @@ class ChatActivity : AppCompatActivity() {
         imageView = findViewById(R.id.sendMessageBtn)
         editText = findViewById(R.id.typeMessage)
         addicon = findViewById(R.id.addIcon)
-        mediaPlayer = MediaPlayer.create(this, R.raw.message_sound)
         val progressBar: ProgressBar = findViewById(R.id.progressBar)
         // Find the TextViews in your layout
         val textViewDay = findViewById<TextView>(R.id.textViewDay)
@@ -129,7 +122,7 @@ class ChatActivity : AppCompatActivity() {
                 val serverToken = ServerToken(this@ChatActivity)
                 realAccessToken = serverToken.getServerToken()
 
-                Log.d("Server Token", realAccessToken!!)
+                Log.d("Server Token", realAccessToken)
             } catch (e: Exception) {
                 Log.e("Error", "Failed to get server token: ${e.message}")
             }
@@ -138,7 +131,7 @@ class ChatActivity : AppCompatActivity() {
         val filter = IntentFilter("MESSAGE_SENT")
         val intentFilter = IntentFilter("MESSAGE_SENT")
         registerReceiver(messageSentReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED)
-       // registerReceiver(messageSentReceiver, filter)
+        // registerReceiver(messageSentReceiver, filter)
 
         // Get the current day and date
         val calendar = Calendar.getInstance()
@@ -173,32 +166,10 @@ class ChatActivity : AppCompatActivity() {
             showPopupMenu(it)
         }
 
-        // Retrieve data from the intent
-        val receiverUidFromPendingIntent = intent.getStringExtra("receiverUid")
-        val receiverName = intent.getStringExtra("receiverName")
-        val message = intent.getStringExtra("message")
-        val senderName = intent.getStringExtra("senderName")
-        val senderUidd = intent.getStringExtra("senderUid")
-
-
-
-        // Log the received data
-        Log.d("ChatActivity", "Receiver UID: $receiverUidFromPendingIntent")
-        Log.d("ChatActivity", "Receiver Name: $receiverName")
-        Log.d("ChatActivity", "Message: $message")
-        Log.d("ChatActivity", "Sender Name: $senderName")
-        Log.d("ChatActivity", "Sender Uid: $senderUidd")
-
-
-        val extras = intent.extras
-        extras?.keySet()?.forEach { key ->
-            Log.d("ChatActivity Extra", "Key: $key, Value: ${extras.get(key)}")
-        }
-
 
         databaseReference = FirebaseDatabase.getInstance().getReference()
 
-         receiverUid = intent.getStringExtra("uid")
+        receiverUid = intent.getStringExtra("uid")
         val senderUid = FirebaseUtil().currentUserId()
         val name = intent.getStringExtra("name")
         val imageUrl = intent.getStringExtra("imageUrl")
@@ -206,17 +177,30 @@ class ChatActivity : AppCompatActivity() {
             text = name
         }
 
-        binding.voiceCall.setOnClickListener {
-            val intent = Intent(this, VoiceCall::class.java)
-            intent.putExtra("channelName", "YOUR_CHANNEL_NAME")
-            intent.putExtra("picture",imageUrl)
-            intent.putExtra("name",name)// Pass channel or other data if needed
-            startActivity(intent)
+                databaseReference.child("Users").child(receiverUid!!).child("About").get()
+                    .addOnSuccessListener { snapshot ->
+                        val aboutFetch = if (snapshot.exists())snapshot.value as? String else "$name did not add any about!"
+                          about= aboutFetch
+                        Log.d("about check",about.toString())
+
+                    }.addOnFailureListener {
+                        Log.d("about",about.toString())
+                    }
+
+
+        binding.toolbarName.setOnClickListener{
+            showUserDetailDialog(imageUrl = imageUrl, username = name!!, userabout = about!!)
         }
 
-        prefs.notificationSenderUid = receiverUid
-        Log.d("check receiver Uid", "Receiver Uid: ${prefs.notificationSenderUid}")
+        binding.voiceCall.setIsVideoCall(false)
+        binding.voiceCall.setResourceID("zego_uikit_call")
+        binding.voiceCall.setInvitees(listOf(ZegoUIKitUser(receiverUid)))
 
+        binding.videoCall.setIsVideoCall(true)
+        binding.videoCall.setResourceID("zego_uikit_call")
+        binding.videoCall.setInvitees(listOf(ZegoUIKitUser(receiverUid)))
+
+        prefs.notificationSenderUid = receiverUid
 
         Glide.with(this)
             .load(imageUrl)
@@ -258,7 +242,7 @@ class ChatActivity : AppCompatActivity() {
                     recyclerView.post {
                         recyclerView.smoothScrollToPosition(adapter.itemCount - 0)
                     }
-                   // playMessageSound()
+                    // playMessageSound()
                 }
 
                 override fun onCancelled(error: DatabaseError) {
@@ -285,7 +269,6 @@ class ChatActivity : AppCompatActivity() {
                 }
             }
         })
-      //  listenForUserStatus(receiverUid!!)
 
         imageView.setOnClickListener {
 
@@ -322,7 +305,7 @@ class ChatActivity : AppCompatActivity() {
                     }
                 editText.text.clear()
             } else {
-                CommonUtil.showToastMessage(this,"Enter message")
+                CommonUtil.showToastMessage(this, "Enter message")
             }
         }
         adapter.onMessageLongClickListener = { message ->
@@ -337,7 +320,9 @@ class ChatActivity : AppCompatActivity() {
         userRef.child("lastOnline").onDisconnect().setValue(ServerValue.TIMESTAMP)
 
         // for online status
-        val userStatusRef = FirebaseDatabase.getInstance().getReference("Users").child(receiverUid!!).child("status")
+        val userStatusRef =
+            FirebaseDatabase.getInstance().getReference("Users").child(receiverUid!!)
+                .child("status")
 
         userStatusRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -345,40 +330,42 @@ class ChatActivity : AppCompatActivity() {
                     val status = snapshot.getValue(String::class.java)
                     Log.d("Check status", status.toString())
                     if (status == "offline") {
-                        // Show "Online" below the name
-                        // Get the last online timestamp
-                        FirebaseDatabase.getInstance().getReference("Users").child(receiverUid!!).child("lastOnline").addListenerForSingleValueEvent(object : ValueEventListener {
-                            override fun onDataChange(lastOnlineSnapshot: DataSnapshot) {
-                                val lastOnlineTimestamp = lastOnlineSnapshot.getValue(Long::class.java)
-                                if (lastOnlineTimestamp != null) {
-                                    val lastOnlineTime = formatLastSeen(lastOnlineTimestamp)
-                                    binding.onlineStatus.text = lastOnlineTime
-                                } else {
-                                    Log.d("last seen ", lastOnlineTimestamp.toString())
-                                    binding.onlineStatus.text = "Offline"
-                                }
-                            }
+                        FirebaseDatabase.getInstance().getReference("Users").child(receiverUid!!)
+                            .child("lastOnline")
+                            .addListenerForSingleValueEvent(object : ValueEventListener {
+                                override fun onDataChange(lastOnlineSnapshot: DataSnapshot) {
+                                    val lastOnlineTimestamp =
+                                        lastOnlineSnapshot.getValue(Long::class.java)
+                                    if (lastOnlineTimestamp != null) {
+                                        val lastOnlineTime = formatLastSeen(lastOnlineTimestamp)
+                                        binding.onlineStatus.text = lastOnlineTime
 
-                            override fun onCancelled(error: DatabaseError) {
-                                Log.e("ChatActivity", "Error retrieving last online time: ${error.message}")
-                            }
-                        })
+                                    } else {
+                                        binding.onlineStatus.text = "Offline"
+                                    }
+                                }
+
+                                override fun onCancelled(error: DatabaseError) {
+
+                                }
+                            })
                     } else {
                         // Show "Offline" below the name or hide the status
                         binding.onlineStatus.text = "Online"
                     }
                 } else {
-                    Log.d("Check status", "Status field does not exist")
+
                 }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                Log.d("Check status",error.toString())
+
             }
         })
 
         // for typing... status
-        val receiver = FirebaseDatabase.getInstance().getReference("Users").child(receiverUid!!).child("typing")
+        val receiver = FirebaseDatabase.getInstance().getReference("Users").child(receiverUid!!)
+            .child("typing")
         receiver.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val isTyping = snapshot.getValue(Boolean::class.java) ?: false
@@ -386,8 +373,9 @@ class ChatActivity : AppCompatActivity() {
                     // Display "typing..." when the receiver is typing
                     binding.onlineStatus.text = "typing..."
                 } else {
+                    binding.onlineStatus.text = "online"
 // If not typing, maintain the current online/offline status
-                    userStatusRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                    /*userStatusRef.addListenerForSingleValueEvent(object : ValueEventListener {
                         override fun onDataChange(snapshot: DataSnapshot) {
                             val status = snapshot.getValue(String::class.java)
                             binding.onlineStatus.text = if (status == "offline") "Offline" else "Online"
@@ -396,19 +384,18 @@ class ChatActivity : AppCompatActivity() {
                         override fun onCancelled(error: DatabaseError) {
                             Log.e("ChatActivity", "Error retrieving status: ${error.message}")
                         }
-                    })
+                    })*/
                 }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                Log.e("ChatActivity", "Error retrieving typing status: ${error.message}")
 
             }
         })
 
 
-
-        val typingRef = FirebaseDatabase.getInstance().getReference("Users").child(uid!!).child("typing")
+        val typingRef =
+            FirebaseDatabase.getInstance().getReference("Users").child(uid).child("typing")
 
         val typingHandler = Handler(Looper.getMainLooper())
         val typingRunnable = Runnable {
@@ -425,7 +412,10 @@ class ChatActivity : AppCompatActivity() {
                 if (s.toString().isNotEmpty()) {
                     typingRef.setValue(true)  // Set typing status to true
                     typingHandler.removeCallbacks(typingRunnable) // Remove any pending actions
-                    typingHandler.postDelayed(typingRunnable, 2000) // Post runnable to clear typing status after 5 seconds
+                    typingHandler.postDelayed(
+                        typingRunnable,
+                        2000
+                    ) // Post runnable to clear typing status after 5 seconds
                 } else {
                     typingRef.setValue(false) // Set typing status to false when input is empty
                     typingHandler.removeCallbacks(typingRunnable) // Ensure no pending runnable is executed
@@ -440,8 +430,10 @@ class ChatActivity : AppCompatActivity() {
 
     }
 
+
     private fun formatTime(timestamp: Long): String {
-        val dateFormat = SimpleDateFormat("hh:mm a", Locale.getDefault()) // 12-hour format with AM/PM
+        val dateFormat =
+            SimpleDateFormat("hh:mm a", Locale.getDefault()) // 12-hour format with AM/PM
         return dateFormat.format(Date(timestamp))
     }
 
@@ -458,10 +450,12 @@ class ChatActivity : AppCompatActivity() {
                     calendar.get(Calendar.DAY_OF_YEAR) == currentCalendar.get(Calendar.DAY_OF_YEAR) -> {
                 "Last seen today at ${formatTime(timestamp)}"
             }
+
             calendar.get(Calendar.YEAR) == currentCalendar.get(Calendar.YEAR) &&
                     calendar.get(Calendar.DAY_OF_YEAR) == currentCalendar.get(Calendar.DAY_OF_YEAR) - 1 -> {
                 "Last seen yesterday at ${formatTime(timestamp)}"
             }
+
             else -> {
                 val dateFormat = SimpleDateFormat("d MMM, yyyy", Locale.getDefault())
                 "Last seen on ${dateFormat.format(lastSeenDate)}"
@@ -470,7 +464,7 @@ class ChatActivity : AppCompatActivity() {
     }
 
 
-    private fun sendNotificationToReceiver(
+        private fun sendNotificationToReceiver(
         receiverToken: String,
         message: String,
         senderName: String,
@@ -491,12 +485,12 @@ class ChatActivity : AppCompatActivity() {
             "senderName" to senderName,
             "senderUid" to senderUid,
 
-        )
+            )
 
         val messageObj = Messagee(
             token = receiverToken,
             notification = notification,
-            data = dataPayload as Map<String, String>
+            data = dataPayload
         )
 
         val notificationRequest = NotificationRequest(message = messageObj)
@@ -520,7 +514,10 @@ class ChatActivity : AppCompatActivity() {
                     // Handle error
                     runOnUiThread {
 
-                        CommonUtil.showToastMessage(this@ChatActivity,"Failed to send notification")
+                        CommonUtil.showToastMessage(
+                            this@ChatActivity,
+                            "Failed to send notification"
+                        )
                     }
                 }
             } catch (e: Exception) {
@@ -550,9 +547,9 @@ class ChatActivity : AppCompatActivity() {
             if (task.isSuccessful) {
                 messageList.remove(message)
                 adapter.notifyDataSetChanged()
-                CommonUtil.showToastMessage(this,"Message deleted")
+                CommonUtil.showToastMessage(this, "Message deleted")
             } else {
-                CommonUtil.showToastMessage(this,"Failed to delete message")
+                CommonUtil.showToastMessage(this, "Failed to delete message")
             }
         }
     }
@@ -562,29 +559,67 @@ class ChatActivity : AppCompatActivity() {
     }
 
 
-
     fun showPopupMenu(view: View) {
         val popupMenu = PopupMenu(this, view)
         popupMenu.menuInflater.inflate(R.menu.popmenuforimg, popupMenu.menu)
         popupMenu.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.camera -> {
-                    CommonUtil.showToastMessage(this,"Coming soon...")
+                    CommonUtil.showToastMessage(this, "Coming soon...")
                     true
                 }
+
                 R.id.gallery -> {
-                    CommonUtil.showToastMessage(this,"Coming soon...")
+                    CommonUtil.showToastMessage(this, "Coming soon...")
                     true
                 }
+
                 R.id.mic -> {
-                    CommonUtil.showToastMessage(this,"Coming soon...")
+                    CommonUtil.showToastMessage(this, "Coming soon...")
                     true
                 }
+
                 else -> false
             }
         }
 
         popupMenu.show()
+    }
+
+
+    private fun showUserDetailDialog(imageUrl: String?,username: String,userabout: String) {
+        val dialogBuilder = android.app.AlertDialog.Builder(this)
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_user_details, null)
+        dialogBuilder.setView(dialogView)
+
+        val imageView = dialogView.findViewById<CircleImageView>(R.id.imageUserDetail)
+        val userName = dialogView.findViewById<TextView>(R.id.userName)
+        val userAbout = dialogView.findViewById<TextView>(R.id.about)
+
+
+
+        // Load the image into the ImageView
+        imageUrl?.let {
+            Glide.with(this)
+                .load(it)
+                .placeholder(R.drawable.portrait_placeholder)
+                .error(R.drawable.portrait_placeholder)
+                .into(imageView)
+        }
+        if (imageUrl.isNullOrEmpty()) {
+
+            Glide.with(this)
+                .load(R.drawable.portrait_placeholder)
+                .placeholder(R.drawable.portrait_placeholder)
+                .error(R.drawable.portrait_placeholder)
+                .into(imageView)
+        }
+
+        userName.text = username
+        userAbout.text = userabout
+
+        val dialog = dialogBuilder.create()
+        dialog.show()
     }
 }
 
