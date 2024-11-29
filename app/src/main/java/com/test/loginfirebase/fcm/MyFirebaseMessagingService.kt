@@ -24,9 +24,6 @@ class MyFirebaseMessagingService: FirebaseMessagingService() {
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
 
-        Log.d("FCM", "From: ${remoteMessage.from}")
-        Log.d("FCM", "Notification Title: ${remoteMessage.notification?.title}")
-        Log.d("FCM", "Notification Body: ${remoteMessage.notification?.body}")
 
         // Check for data payload
         if (remoteMessage.data.isNotEmpty()) {
@@ -49,7 +46,7 @@ class MyFirebaseMessagingService: FirebaseMessagingService() {
             if (currentChatUserId == senderUid){
                 return
             }else{
-                senderUid?.let { prefs.addUnreadUser(applicationContext, it) }
+                senderUid?.let { prefs.addUnreadUser(it) }
                 val intent = Intent("update_user_list")
                 LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
                 // Send notification with an intent to open ChatActivity
@@ -73,7 +70,7 @@ class MyFirebaseMessagingService: FirebaseMessagingService() {
 
         val channelId = "chat_message_channel"
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(R.drawable.ic_placeholder)
+            .setSmallIcon(R.drawable.cropedicon)
             .setContentTitle("New message from $senderName")
             .setContentText(message)
             .setAutoCancel(true)
@@ -92,10 +89,5 @@ class MyFirebaseMessagingService: FirebaseMessagingService() {
         }
 
         notificationManager.notify(0, notificationBuilder.build())
-    }
-
-    override fun onNewToken(token: String) {
-        super.onNewToken(token)
-        // Update the FCM token to your backend if needed
     }
 }
