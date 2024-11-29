@@ -5,17 +5,12 @@ import android.util.Log
 import android.view.View
 import android.widget.ProgressBar
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
-import com.test.loginfirebase.data.User
 import com.test.loginfirebase.databinding.ActivityChangePasswordBinding
-import com.test.loginfirebase.databinding.ActivityForgotPasswordBinding
 import com.test.loginfirebase.utils.CommonUtil
 import com.test.loginfirebase.utils.sessionManager.UserSessionManager
 
