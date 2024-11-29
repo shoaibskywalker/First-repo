@@ -10,10 +10,10 @@ import android.provider.MediaStore
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.Button
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.ProgressBar
-import android.widget.Switch
-import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,13 +24,12 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.bumptech.glide.Glide
-import com.google.firebase.auth.FirebaseAuth
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
 import com.test.loginfirebase.databinding.ActivityProfile2Binding
-import com.test.loginfirebase.utils.CommonUtil
 import com.test.loginfirebase.utils.CommonUtil.showToastMessage
 import com.test.loginfirebase.utils.FirebaseUtil
 import com.test.loginfirebase.utils.sessionManager.UserSessionManager
@@ -40,14 +39,12 @@ class Profile2 : AppCompatActivity() {
 
     private lateinit var binding: ActivityProfile2Binding
     private lateinit var pickImageLauncher: ActivityResultLauncher<Intent>
-    private lateinit var userSessionManager: UserSessionManager
+    private lateinit var prefs: UserSessionManager
     private var currentUserEmail: String? = null
     private lateinit var databaseReference: DatabaseReference
     private lateinit var storageReference: StorageReference
-    private val firebaseAuth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
     private var imageUrl: String? = null
-    private lateinit var appLockSwitch: Switch
-
+    private var about: String? = null
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -87,16 +84,17 @@ class Profile2 : AppCompatActivity() {
         }
 
 
-        binding.changePassword.setOnClickListener{
+        binding.changePassword.setOnClickListener {
             val intent = Intent(this, ChangePasswordActivity::class.java)
             startActivity(intent)
         }
 
-        window.statusBarColor = ContextCompat.getColor(this, R.color.normalColor) // Replace with your desired color
+        window.statusBarColor =
+            ContextCompat.getColor(this, R.color.normalColor) // Replace with your desired color
 
         binding.progressBar.visibility = ProgressBar.GONE
 
-        userSessionManager = UserSessionManager(this)  // Initialize session manager
+        prefs = UserSessionManager(this)  // Initialize session manager
         // Get current user ID from FirebaseAuth
         val currentUserId = FirebaseUtil().currentUserId()
         databaseReference = FirebaseDatabase.getInstance().getReference("Users")
@@ -104,10 +102,14 @@ class Profile2 : AppCompatActivity() {
         // Initialize Firebase Storage reference
         storageReference = FirebaseStorage.getInstance().reference.child("userProfileImages")
 
-        currentUserEmail = userSessionManager.userEmailLogin
+        currentUserEmail = prefs.userEmailLogin
 
         currentUserId?.let { uid ->
             loadProfileImageFromFirebase(uid)  // This loads the image when you re-enter the activity
+        }
+
+        currentUserId?.let { uid ->
+            loadUserAboutFromFirebase(uid)  // This loads the image when you re-enter the activity
         }
 
         // Load the saved image when the activity starts
@@ -118,6 +120,11 @@ class Profile2 : AppCompatActivity() {
                 binding.image.setImageBitmap(it)
             }
         }*/
+        binding.edit.setOnClickListener {
+            showBottomSheetDialog()
+        }
+
+        binding.userNameProfile.text = prefs.userNameLogin
 
         binding.imageBack.setOnClickListener {
             finish()
@@ -151,7 +158,7 @@ class Profile2 : AppCompatActivity() {
             pickImageLauncher.launch(intent)
 
         }
-        binding.emailProfile.text = userSessionManager.userEmailLogin
+        binding.emailProfile.text = prefs.userEmailLogin
         binding.image.setOnClickListener {
             showImageDialog(imageUrl)
         }
@@ -160,32 +167,35 @@ class Profile2 : AppCompatActivity() {
             showDialog()
         }
 
-    } private fun enableBiometricLock() {
-        // Implement your biometric lock enabling logic here
-        showToastMessage(this,"Biometric lock enabled!")
+    }
+
+    private fun showBottomSheetDialog() {
+        val bottomSheetDialog = BottomSheetDialog(this)
+        val view = LayoutInflater.from(this).inflate(R.layout.profile_about_bottom_sheet, null)
+        bottomSheetDialog.setContentView(view)
+
+        val editAbout = view.findViewById<EditText>(R.id.editAbout)
+        val buttonSave = view.findViewById<Button>(R.id.saveButton)
+
+        buttonSave.setOnClickListener {
+            val aboutText = editAbout.text.toString()
+            databaseReference.child(FirebaseUtil().currentUserId()!!).child("About").setValue(aboutText)
+            loadUserAboutFromFirebase(FirebaseUtil().currentUserId())
+            bottomSheetDialog.dismiss() // Close the bottom sheet
+        }
+
+        bottomSheetDialog.show()
     }
 
     private fun showBiometricPrompt() {
         val executor = ContextCompat.getMainExecutor(this)
-        val biometricPrompt = BiometricPrompt(this, executor, object : BiometricPrompt.AuthenticationCallback() {
-            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                super.onAuthenticationSucceeded(result)
-                // Handle successful authentication here
-            }
+        val biometricPrompt =
+            BiometricPrompt(this, executor, object : BiometricPrompt.AuthenticationCallback() {
 
-            override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                super.onAuthenticationError(errorCode, errString)
-                // Handle authentication error, reset the toggle if desired
-            }
-
-            override fun onAuthenticationFailed() {
-                super.onAuthenticationFailed()
-                // Handle failed authentication
-            }
-        })
+            })
 
         val promptInfo = BiometricPrompt.PromptInfo.Builder()
-            .setTitle("Angutha laga chutiye..")
+            .setTitle("Biometric Authentication")
             .setSubtitle("Authenticate using your biometric credential")
             .setNegativeButtonText("Cancel")
             .build()
@@ -214,7 +224,7 @@ class Profile2 : AppCompatActivity() {
             fileRef.downloadUrl.addOnSuccessListener { uri ->
                 val imageUrl = uri.toString()
                 // Save the image URL in Firebase Realtime Database
-                saveImageUrlToDatabase(userId, imageUrl!!)
+                saveImageUrlToDatabase(userId, imageUrl)
                 // Dismiss ProgressDialog when the task is complete
                 progressDialog.dismiss()
             }
@@ -237,19 +247,41 @@ class Profile2 : AppCompatActivity() {
             }
     }
 
+    private fun loadUserAboutFromFirebase(uid: String?) {
+        //-
+        uid?.let {
+            databaseReference.child(it).child("About").get()
+                .addOnSuccessListener { snapshot ->
+                    about = snapshot.value as? String
+                    about?.let {
+                        //---
+                        binding.aboutProfile.text = it
+                    }
+                }.addOnFailureListener {
+                    Log.e(
+                        "About upload",
+                        "Failed to load about from database: ${it.message}"
+                    )
+                }
+        }
+    }
+
     private fun loadProfileImageFromFirebase(uid: String?) {
         //-
         uid?.let {
             databaseReference.child(it).child("profileImageUrl").get()
                 .addOnSuccessListener { snapshot ->
-                     imageUrl = snapshot.value as? String
+                    imageUrl = snapshot.value as? String
                     imageUrl?.let {
-                       //---
+                        //---
                         loadProfileImage(it)
                     }
                 }.addOnFailureListener {
-                Log.e("Profile2 image upload", "Failed to load image URL from database: ${it.message}")
-            }
+                    Log.e(
+                        "Profile2 image upload",
+                        "Failed to load image URL from database: ${it.message}"
+                    )
+                }
         }
     }
 
@@ -337,9 +369,9 @@ class Profile2 : AppCompatActivity() {
                     Log.e("Firebase Realtime DB", "Failed to remove image URL: ${it.message}")
                     binding.progressBar.visibility = ProgressBar.GONE
                 }
-        }else{
+        } else {
             //Toast.makeText(this, "No profile picture to delete", Toast.LENGTH_SHORT).show()
-            CommonUtil.showToastMessage(this, "No profile picture to delete")
+            showToastMessage(this, "No profile picture to delete")
 
         }
     }
