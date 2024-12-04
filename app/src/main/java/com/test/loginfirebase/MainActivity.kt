@@ -7,9 +7,11 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.graphics.drawable.ColorDrawable
 import android.net.ConnectivityManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.text.Editable
@@ -22,6 +24,7 @@ import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.RatingBar
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -33,7 +36,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.bumptech.glide.Glide
@@ -153,6 +155,8 @@ class MainActivity : AppCompatActivity() {
         binding.profileStoryImage.setOnClickListener {
             fetchStories()
         }
+
+        askForNotificationPermission()
 
 
         statusAdapter = StatusAdapter(this, statusList)
@@ -908,6 +912,37 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun askForNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            when {
+                ContextCompat.checkSelfPermission(
+                    this,
+                    android.Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    // Permission is already granted
+                }
+                else -> {
+                    // Request notification permission
+                    requestNotificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+        } else {
+            // For Android 12 and below, notifications don't require explicit permission
+            CommonUtil.showToastMessage(this,"No explicit permission required for notifications on this Android version.")
+        }
+    }
+
+    private val requestNotificationPermission = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // Permission granted
+            CommonUtil.showToastMessage(this,"Notifications enabled!")
+        } else {
+            // Permission denied
+            CommonUtil.showToastMessage(this,"Please enable notifications for a better experience.")
+        }
+    }
 
     private fun checkUserStories() {
         // Adding current story border
