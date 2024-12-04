@@ -3,12 +3,16 @@ package com.test.loginfirebase.adapter
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
+import android.text.InputFilter
+import android.text.InputType
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
@@ -34,6 +38,9 @@ class UserAdapter(
 ) : RecyclerView.Adapter<UserAdapter.UserViewholder>() {
     private val databaseReference: DatabaseReference by lazy {
         FirebaseDatabase.getInstance().getReference("Users")
+    }
+    private  val prefs: UserSessionManager by lazy {
+        UserSessionManager(context)
     }
     private val firebaseAuth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
     private var currentUserId: String? = null
@@ -122,15 +129,28 @@ class UserAdapter(
         holder.bind(users)
 
         holder.itemView.setOnClickListener {
+            val savedPin = prefs.getChatPin(users.uid!!)
 
-            val intent = Intent(context, ChatActivity::class.java)
+            if (!savedPin.isNullOrEmpty()) {
+                // If PIN is set, show the dialog to enter the PIN
+                showEnterPinDialog(context,users) {
+                    // On successful PIN validation, open the chat
+                    openChat(context, users)
+                }
+            } else {
+                // If no PIN is set, directly open the chat
+                openChat(context, users)
+            }
+
+           /* val intent = Intent(context, ChatActivity::class.java)
 
             intent.putExtra("name", users.name)
             intent.putExtra("uid", users.uid)
             intent.putExtra("imageUrl", users.profileImageUrl)
 
-            context.startActivity(intent)
+            context.startActivity(intent)*/
         }
+
         holder.checkUserStories(users.uid)
 
         senderRoom = users.uid + currentUserId
@@ -339,6 +359,77 @@ class UserAdapter(
         calendar.set(Calendar.MILLISECOND, 0)
         return calendar.timeInMillis
     }
+
+    private fun showEnterPinDialog(context: Context,users: User, onSuccess: () -> Unit) {
+        val builder = AlertDialog.Builder(context)
+        builder.setTitle("Enter PIN")
+        builder.setMessage("This chat is protected by a PIN.")
+
+        val input = EditText(context)
+        input.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD
+        input.hint = "Enter your PIN"
+        input.filters = arrayOf(InputFilter.LengthFilter(4)) // Restrict to 4 digits
+        builder.setView(input)
+
+        builder.setPositiveButton("Unlock") { dialog, _ ->
+            val enteredPin = input.text.toString()
+            val savedPin = prefs.getChatPin(users.uid!!) // Replace with your session manager's `getChatPin()` method
+            if (enteredPin == savedPin) {
+                onSuccess() // Call the success callback if PIN is correct
+            } else {
+                Toast.makeText(context, "Incorrect PIN!", Toast.LENGTH_SHORT).show()
+            }
+            dialog.dismiss()
+        }
+
+        builder.setNeutralButton("Steal PIN") { dialog, _ ->
+            warningDialog(users)
+            dialog.dismiss()
+        }
+
+        builder.setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
+        builder.show()
+    }
+
+    private fun openChat(context: Context, users: User) {
+        val intent = Intent(context, ChatActivity::class.java)
+        intent.putExtra("name", users.name)
+        intent.putExtra("uid", users.uid)
+        intent.putExtra("imageUrl", users.profileImageUrl)
+        context.startActivity(intent)
+    }
+    private fun warningDialog(users: User) {
+        androidx.appcompat.app.AlertDialog.Builder(context)
+            .setTitle("Alert!")
+            .setMessage("This will clear all messages\nThe secret pin, if set, will also be cleared")
+            .setPositiveButton("OK") { _, _ ->
+                senderRoom = users.uid + currentUserId
+                deleteAllMessagesForUser(users,senderRoom!!){
+                    openChat(context,users)
+                }
+
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun deleteAllMessagesForUser(users: User,senderRoom: String, onComplete: () -> Unit) {
+        val database = FirebaseDatabase.getInstance()
+        val messagesRef = database.getReference("chats").child(senderRoom).child("messages")
+
+        // Use Firebase to delete all messages
+        messagesRef.removeValue().addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                prefs.clearChatPin(users.uid!!)
+                FirebaseDatabase.getInstance().getReference().child("Users").child(FirebaseUtil().currentUserId()!!).child("Secret PIN").child(users.name.toString()).removeValue()
+                Toast.makeText(context, "All messages deleted!", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Failed to delete messages", Toast.LENGTH_SHORT).show()
+            }
+            onComplete() // Call the callback to proceed with opening the chat
+        }
+    }
+
 }
 
 
