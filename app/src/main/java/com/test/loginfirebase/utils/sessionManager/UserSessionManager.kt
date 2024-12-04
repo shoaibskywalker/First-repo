@@ -52,7 +52,19 @@ class UserSessionManager
         prefEditor.apply()
         }
 
+    fun setChatPin(uid: String, pin: String) {
+        prefEditor.putString("CHAT_PIN_$uid", pin)
+        prefEditor.apply()
+    }
 
+    fun getChatPin(uid: String): String? {
+        return prefs.getString("CHAT_PIN_$uid", null)
+    }
+
+    fun clearChatPin(uid: String) {
+        prefEditor.remove("CHAT_PIN_$uid")
+        prefEditor.apply()
+    }
 
     var userAbout: String?
         get() = prefs.getString("userAbout", null)
