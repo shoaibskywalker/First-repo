@@ -6,10 +6,14 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Rect
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.MediaStore
 import android.text.Editable
+import android.text.InputFilter
+import android.text.InputType
 import android.text.TextWatcher
 import android.util.Log
 import android.view.LayoutInflater
@@ -21,6 +25,8 @@ import android.widget.ImageView
 import android.widget.PopupMenu
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -75,6 +81,7 @@ class ChatActivity : AppCompatActivity() {
     private lateinit var realAccessToken: String
     private var receiverUid: String? = null  // Store userId
     private var about: String? = null
+    private lateinit var pickImageLauncher: ActivityResultLauncher<Intent>
 
 
     var senderRoom: String? = null
@@ -109,10 +116,6 @@ class ChatActivity : AppCompatActivity() {
         editText = findViewById(R.id.typeMessage)
         addicon = findViewById(R.id.addIcon)
         val progressBar: ProgressBar = findViewById(R.id.progressBar)
-        // Find the TextViews in your layout
-        val textViewDay = findViewById<TextView>(R.id.textViewDay)
-        val textViewDate = findViewById<TextView>(R.id.textViewDate)
-
 
         //initialize shared preference
         prefs = UserSessionManager(this)
@@ -128,7 +131,6 @@ class ChatActivity : AppCompatActivity() {
             }
         }
 
-        val filter = IntentFilter("MESSAGE_SENT")
         val intentFilter = IntentFilter("MESSAGE_SENT")
         registerReceiver(messageSentReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED)
         // registerReceiver(messageSentReceiver, filter)
@@ -137,10 +139,6 @@ class ChatActivity : AppCompatActivity() {
         val calendar = Calendar.getInstance()
         val dateFormat = SimpleDateFormat("EEEE", Locale.getDefault())
         val date = SimpleDateFormat("MMMM dd, yyyy", Locale.getDefault())
-
-        // Set the day and date to the TextViews
-        textViewDay.text = dateFormat.format(calendar.time)
-        textViewDate.text = date.format(calendar.time)
 
         rotationAnimator = ObjectAnimator.ofFloat(addicon, View.ROTATION, 0f, 45f).apply {
             duration = 200 // Animation duration in milliseconds
@@ -153,6 +151,26 @@ class ChatActivity : AppCompatActivity() {
             finish()
         }
 
+        pickImageLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == RESULT_OK && result.data != null) {
+                val imageUri: Uri? = result.data!!.data
+                imageUri?.let { uri ->
+                    // Using MediaStore to access the image
+                    val bitmap = MediaStore.Images.Media.getBitmap(contentResolver, uri)
+                    binding.image.setImageBitmap(bitmap)  // Display in ImageView
+                    Log.d("selected image", uri.toString())
+                    // Save the selected image to SharedPreferences
+                    // Save the selected image for the current user
+                    /*currentUserEmail?.let { email ->
+                        userSessionManager.saveUserProfileImage(email, bitmap)
+                    }*/
+
+                }
+            }
+        }
+
         addicon.setOnClickListener {
             if (!rotationAnimator.isRunning) {
                 if (isAddIconRotated) {
@@ -163,7 +181,12 @@ class ChatActivity : AppCompatActivity() {
                 rotationAnimator.start()
                 isAddIconRotated = !isAddIconRotated
             }
-            showPopupMenu(it)
+            showPopupMenu(launcher = pickImageLauncher,it)
+            binding.cancel.setOnClickListener{
+                binding.entermessage.visibility = View.VISIBLE
+                binding.sendMessageBtn.visibility = View.VISIBLE
+                binding.linearAudio.visibility = View.GONE
+            }
         }
 
 
@@ -175,6 +198,9 @@ class ChatActivity : AppCompatActivity() {
         val imageUrl = intent.getStringExtra("imageUrl")
         val text = findViewById<TextView>(R.id.toolbarName).apply {
             text = name
+        }
+        binding.threedoticon.setOnClickListener {
+            showChatLockMenu(it,name)
         }
 
                 databaseReference.child("Users").child(receiverUid!!).child("About").get()
@@ -559,7 +585,8 @@ class ChatActivity : AppCompatActivity() {
     }
 
 
-    fun showPopupMenu(view: View) {
+    fun showPopupMenu(launcher: ActivityResultLauncher<Intent>,view: View) {
+
         val popupMenu = PopupMenu(this, view)
         popupMenu.menuInflater.inflate(R.menu.popmenuforimg, popupMenu.menu)
         popupMenu.setOnMenuItemClickListener { menuItem ->
@@ -570,12 +597,16 @@ class ChatActivity : AppCompatActivity() {
                 }
 
                 R.id.gallery -> {
-                    CommonUtil.showToastMessage(this, "Coming soon...")
+                    val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+                    intent.type = "image/*"
+                    launcher.launch(intent)
                     true
                 }
 
                 R.id.mic -> {
-                    CommonUtil.showToastMessage(this, "Coming soon...")
+                    binding.entermessage.visibility = View.GONE
+                    binding.sendMessageBtn.visibility = View.GONE
+                    binding.linearAudio.visibility = View.VISIBLE
                     true
                 }
 
@@ -585,6 +616,66 @@ class ChatActivity : AppCompatActivity() {
 
         popupMenu.show()
     }
+
+    fun showChatLockMenu(view: View,name:String?) {
+        val popupMenu = PopupMenu(this, view)
+        popupMenu.menuInflater.inflate(R.menu.chatlock, popupMenu.menu)
+        popupMenu.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.enablechatLock -> {
+                    if (prefs.getChatPin(receiverUid!!).isNullOrEmpty()) {
+                        // No PIN set, ask to create a new PIN
+                        showSetPinDialog(name)
+                    } else {
+                        CommonUtil.showToastMessage(this, "PIN already set!")
+                    }
+                    true
+                }
+                R.id.disablechatLock -> {
+                    if (prefs.getChatPin(receiverUid!!).isNullOrEmpty()) {
+                        CommonUtil.showToastMessage(this, "PIN is not set")
+
+                    }else{
+                        prefs.clearChatPin(receiverUid!!)
+                        FirebaseDatabase.getInstance().getReference().child("Users").child(FirebaseUtil().currentUserId()!!).child("Secret PIN").child(name.toString()).removeValue()
+                        CommonUtil.showToastMessage(this, "This chat is now un-locked")
+                    }
+                    true
+                }
+
+                else -> false
+            }
+        }
+        popupMenu.show()
+    }
+
+    private fun showSetPinDialog(name: String?) {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Set PIN")
+
+        // Add a text input field
+        val input = EditText(this)
+        input.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD
+        input.hint = "Enter 4-digit PIN"
+        input.filters = arrayOf(InputFilter.LengthFilter(4)) // Limit to 4 digits
+        builder.setView(input)
+
+        builder.setPositiveButton("Set") { dialog, _ ->
+            val pin = input.text.toString()
+            if (pin.length == 4) {
+                prefs.setChatPin(receiverUid!!,pin)
+                FirebaseDatabase.getInstance().getReference().child("Users").child(FirebaseUtil().currentUserId()!!).child("Secret PIN").child(name.toString()).setValue(pin)
+                CommonUtil.showToastMessage(this, "PIN set successfully!")
+            } else {
+                CommonUtil.showToastMessage(this, "PIN must be 4 digits!")
+            }
+            dialog.dismiss()
+        }
+
+        builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+        builder.show()
+    }
+
 
 
     private fun showUserDetailDialog(imageUrl: String?,username: String,userabout: String) {
