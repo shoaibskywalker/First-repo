@@ -1,0 +1,11 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/enablechatLock"
+        android:title="Enable Chat Lock"
+        app:showAsAction="always"/>
+    <item
+        android:id="@+id/disablechatLock"
+        android:title="Disable Chat Lock"
+        app:showAsAction="always"/>
+</menu>
