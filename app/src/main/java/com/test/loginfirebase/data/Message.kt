@@ -6,5 +6,6 @@ data class Message(
     var senderId: String? = null,
     var timeStamp: Long? = System.currentTimeMillis(),
     var dateStamp: Long? = System.currentTimeMillis(),
-    var messageId: String = ""
+    var messageId: String = "",
+    val isTyping: Boolean = false
 )
