@@ -8,4 +8,8 @@
         android:id="@+id/disablechatLock"
         android:title="Disable Chat Lock"
         app:showAsAction="always"/>
+    <item
+        android:id="@+id/imageDownload"
+        android:title="Download Image"
+        app:showAsAction="always"/>
 </menu>
