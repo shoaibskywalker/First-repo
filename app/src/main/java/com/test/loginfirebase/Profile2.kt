@@ -14,6 +14,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.ProgressBar
+import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -29,6 +30,8 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
+import com.stfalcon.imageviewer.StfalconImageViewer
+import com.test.loginfirebase.data.Message
 import com.test.loginfirebase.databinding.ActivityProfile2Binding
 import com.test.loginfirebase.utils.CommonUtil.showToastMessage
 import com.test.loginfirebase.utils.FirebaseUtil
@@ -49,14 +52,8 @@ class Profile2 : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         binding = ActivityProfile2Binding.inflate(layoutInflater)
         setContentView(binding.root)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
 
         binding.appLockSwitch.setOnCheckedChangeListener { _, isChecked ->
 
@@ -164,7 +161,7 @@ class Profile2 : AppCompatActivity() {
         }
 
         binding.deleteImage.setOnClickListener {
-            showDialog()
+            showDeleteDialog(title = "Delete!", subTitle = "Are you sure you want to remove your profile picture?")
         }
 
     }
@@ -294,51 +291,46 @@ class Profile2 : AppCompatActivity() {
             .into(binding.image)
     }
 
-    private fun showDialog() {
-        val builder = AlertDialog.Builder(this)
-        builder.setTitle("Delete!")
-        builder.setMessage("Are you sure you want to remove your profile picture?")
+    private fun showDeleteDialog( title: String, subTitle: String) {
 
-        builder.setNegativeButton("No") { dialog, which ->
-            // Handle the click event, e.g., close the app
-            dialog.dismiss()
-        }
-        builder.setPositiveButton("Yes") { dialog, which ->
+        val dialogView = layoutInflater.inflate(R.layout.custom_dialog, null)
+        val positiveButton = dialogView.findViewById<Button>(R.id.positiveButton)
+        val negativeButton = dialogView.findViewById<Button>(R.id.negativeButton)
+
+        val dialog = AlertDialog.Builder(this)
+        dialog.setView(dialogView)
+        dialog.setCancelable(true)
+        val alertDialog = dialog.create()
+
+        alertDialog.show()
+
+        val dialogTitle = dialogView.findViewById<TextView>(R.id.dialogTitle)
+        val dialogSubTitle = dialogView.findViewById<TextView>(R.id.dialogSubTitle)
+        dialogTitle.text = title
+        dialogSubTitle.text = subTitle
+
+
+        positiveButton.setOnClickListener {
             val currentUserId = FirebaseUtil().currentUserId()
             currentUserId?.let { uid ->
                 deleteProfileImageFromFirebase(uid)
             }
+            alertDialog.dismiss()
         }
-        builder.setCancelable(true)
-        builder.show()
+        negativeButton.setOnClickListener {
+            alertDialog.dismiss()
+        }
     }
 
     private fun showImageDialog(imageUrl: String?) {
-        val dialogBuilder = android.app.AlertDialog.Builder(this)
-        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_image_view, null)
-        dialogBuilder.setView(dialogView)
-
-        val imageView = dialogView.findViewById<ImageView>(R.id.dialogImageView)
-
-        // Load the image into the ImageView
-        imageUrl?.let {
+        StfalconImageViewer.Builder(this, listOf(imageUrl)) { view, image ->
+            // Load the single image using Glide
             Glide.with(this)
-                .load(it)
+                .load(image)
                 .placeholder(R.drawable.portrait_placeholder)
                 .error(R.drawable.portrait_placeholder)
-                .into(imageView)
-        }
-        if (imageUrl.isNullOrEmpty()) {
-
-            Glide.with(this)
-                .load(R.drawable.portrait_placeholder)
-                .placeholder(R.drawable.portrait_placeholder)
-                .error(R.drawable.portrait_placeholder)
-                .into(imageView)
-        }
-
-        val dialog = dialogBuilder.create()
-        dialog.show()
+                .into(view)
+        }.show()
     }
 
     private fun deleteProfileImageFromFirebase(userId: String) {
