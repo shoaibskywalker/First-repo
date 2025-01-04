@@ -22,6 +22,7 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import com.stfalcon.imageviewer.StfalconImageViewer
 import com.test.loginfirebase.ChatActivity
 import com.test.loginfirebase.R
 import com.test.loginfirebase.data.Message
@@ -98,6 +99,7 @@ class UserAdapter(
 
         holder.userImage.setOnClickListener {
             showImageDialog(users.profileImageUrl)
+
         }
 
 
@@ -161,14 +163,10 @@ class UserAdapter(
             users.uid!!
         ) { lastMessage, lastMessageTime, lastDate, isFromSender ->
 
-            holder.lastMessage.text = lastMessage
+            holder.lastMessage.text = if (isFromSender) "You : $lastMessage" else lastMessage
             holder.lastMessageTime.text = lastMessageTime
             holder.lastMessageDate.text = lastDate
-            if (isFromSender) {
-                holder.you.visibility = View.VISIBLE
-            } else {
-                holder.you.visibility = View.GONE
-            }
+
         }
     }
 
@@ -185,7 +183,7 @@ class UserAdapter(
         val lastMessage = itemView.findViewById<TextView>(R.id.lastmessage)!!
         val lastMessageTime = itemView.findViewById<TextView>(R.id.lastmessagetime)!!
         val lastMessageDate = itemView.findViewById<TextView>(R.id.lastmessageDate)!!
-        val you = itemView.findViewById<TextView>(R.id.you)!!
+       // val you = itemView.findViewById<TextView>(R.id.you)!!
         val activeStory = itemView.findViewById<View>(R.id.activeStory)!!
 
 
@@ -226,31 +224,14 @@ class UserAdapter(
     }
 
     private fun showImageDialog(imageUrl: String?) {
-        val dialogBuilder = AlertDialog.Builder(context)
-        val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_image_view, null)
-        dialogBuilder.setView(dialogView)
-
-        val imageView = dialogView.findViewById<ImageView>(R.id.dialogImageView)
-
-        // Load the image into the ImageView
-        imageUrl?.let {
+        StfalconImageViewer.Builder(context, listOf( imageUrl)) { view, image ->
+            // Load the image into the viewer using Glide
             Glide.with(context)
-                .load(it)
+                .load(image)
                 .placeholder(R.drawable.portrait_placeholder)
                 .error(R.drawable.portrait_placeholder)
-                .into(imageView)
-        }
-        if (imageUrl.isNullOrEmpty()) {
-
-            Glide.with(context)
-                .load(R.drawable.portrait_placeholder)
-                .placeholder(R.drawable.portrait_placeholder)
-                .error(R.drawable.portrait_placeholder)
-                .into(imageView)
-        }
-
-        val dialog = dialogBuilder.create()
-        dialog.show()
+                .into(view)
+        }.show()
     }
 
     fun filterList(filteredList: ArrayList<User>) {
