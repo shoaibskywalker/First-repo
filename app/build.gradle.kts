@@ -83,5 +83,7 @@ dependencies {
     implementation ("com.github.ZEGOCLOUD:zego_uikit_prebuilt_call_android:+")
     implementation ("com.github.OMARIHAMZA:StoryView:1.0.2-alpha")
     implementation ("androidx.work:work-runtime-ktx:2.7.1")
+    implementation ("com.airbnb.android:lottie:6.0.0")
+    implementation ("com.github.stfalcon-studio:StfalconImageViewer:v1.0.1")
 
 }
