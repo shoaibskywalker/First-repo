@@ -80,6 +80,19 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/toolbar" />
 
+        <ImageView
+            android:id="@+id/QRCode"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:elevation="10dp"
+            android:layout_marginStart="15dp"
+            android:layout_marginTop="15dp"
+            android:src="@drawable/qr_code"
+            app:layout_constraintTop_toBottomOf="@+id/toolbar"
+            app:layout_constraintStart_toStartOf="parent" />
+
+
+
     <ProgressBar
         android:id="@+id/progressBar"
         android:layout_width="30dp"
@@ -354,6 +367,36 @@
                 android:layout_height="wrap_content"
                 />
 
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/linearScanner"
+            android:layout_width="match_parent"
+            android:layout_height="70dp"
+            android:layout_marginStart="30dp"
+            android:layout_marginEnd="10dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/linearAppLock">
+
+
+            <ImageView
+                android:id="@+id/imageScanner"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@drawable/qr_code_scanner_" />
+
+            <TextView
+                android:id="@+id/ScannQr"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="20dp"
+                android:text="Scan QR Code"
+                android:clickable="true"
+                android:textColor="@color/black"
+                android:textSize="14sp" />
         </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
