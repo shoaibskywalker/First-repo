@@ -2,12 +2,17 @@ package com.test.loginfirebase
 
 import android.animation.ObjectAnimator
 import android.content.BroadcastReceiver
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.graphics.Rect
+import android.media.MediaScannerConnection
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
@@ -18,17 +23,20 @@ import android.text.TextWatcher
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewTreeObserver
 import android.view.animation.AccelerateDecelerateInterpolator
+import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.PopupMenu
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -57,6 +65,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.io.File
+import java.io.FileOutputStream
+import java.io.InputStream
+import java.net.HttpURLConnection
+import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -135,10 +148,6 @@ class ChatActivity : AppCompatActivity() {
         registerReceiver(messageSentReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED)
         // registerReceiver(messageSentReceiver, filter)
 
-        // Get the current day and date
-        val calendar = Calendar.getInstance()
-        val dateFormat = SimpleDateFormat("EEEE", Locale.getDefault())
-        val date = SimpleDateFormat("MMMM dd, yyyy", Locale.getDefault())
 
         rotationAnimator = ObjectAnimator.ofFloat(addicon, View.ROTATION, 0f, 45f).apply {
             duration = 200 // Animation duration in milliseconds
@@ -181,8 +190,8 @@ class ChatActivity : AppCompatActivity() {
                 rotationAnimator.start()
                 isAddIconRotated = !isAddIconRotated
             }
-            showPopupMenu(launcher = pickImageLauncher,it)
-            binding.cancel.setOnClickListener{
+            showPopupMenu(launcher = pickImageLauncher, it)
+            binding.cancel.setOnClickListener {
                 binding.entermessage.visibility = View.VISIBLE
                 binding.sendMessageBtn.visibility = View.VISIBLE
                 binding.linearAudio.visibility = View.GONE
@@ -200,21 +209,22 @@ class ChatActivity : AppCompatActivity() {
             text = name
         }
         binding.threedoticon.setOnClickListener {
-            showChatLockMenu(it,name)
+            showChatLockMenu(it, name,imageUrl)
         }
 
-                databaseReference.child("Users").child(receiverUid!!).child("About").get()
-                    .addOnSuccessListener { snapshot ->
-                        val aboutFetch = if (snapshot.exists())snapshot.value as? String else "$name did not add any about!"
-                          about= aboutFetch
-                        Log.d("about check",about.toString())
+        databaseReference.child("Users").child(receiverUid!!).child("About").get()
+            .addOnSuccessListener { snapshot ->
+                val aboutFetch =
+                    if (snapshot.exists()) snapshot.value as? String else "$name did not add any about!"
+                about = aboutFetch
+                Log.d("about check", about.toString())
 
-                    }.addOnFailureListener {
-                        Log.d("about",about.toString())
-                    }
+            }.addOnFailureListener {
+                Log.d("about", about.toString())
+            }
 
 
-        binding.toolbarName.setOnClickListener{
+        binding.toolbarName.setOnClickListener {
             showUserDetailDialog(imageUrl = imageUrl, username = name!!, userabout = about!!)
         }
 
@@ -277,24 +287,21 @@ class ChatActivity : AppCompatActivity() {
 
             })
 
-        binding.root.viewTreeObserver.addOnGlobalLayoutListener(object :
-            ViewTreeObserver.OnGlobalLayoutListener {
-            override fun onGlobalLayout() {
-                val r = Rect()
-                binding.root.getWindowVisibleDisplayFrame(r)
-                val screenHeight = binding.root.rootView.height
-                val keypadHeight = screenHeight - r.bottom
+        binding.root.viewTreeObserver.addOnGlobalLayoutListener {
+            val r = Rect()
+            binding.root.getWindowVisibleDisplayFrame(r)
+            val screenHeight = binding.root.rootView.height
+            val keypadHeight = screenHeight - r.bottom
 
-                if (keypadHeight > screenHeight * 0.15) { // Keyboard is open
-                    if (!isKeyboardOpen) {
-                        isKeyboardOpen = true
-                        scrollToBottom()
-                    }
-                } else { // Keyboard is closed
-                    isKeyboardOpen = false
+            if (keypadHeight > screenHeight * 0.15) { // Keyboard is open
+                if (!isKeyboardOpen) {
+                    isKeyboardOpen = true
+                    scrollToBottom()
                 }
+            } else { // Keyboard is closed
+                isKeyboardOpen = false
             }
-        })
+        }
 
         imageView.setOnClickListener {
 
@@ -336,7 +343,18 @@ class ChatActivity : AppCompatActivity() {
         }
         adapter.onMessageLongClickListener = { message ->
             // Show a dialog when a message is long-clicked
-            showDeleteDialog(message)
+            /*showDeleteDialog(
+                message,
+                title = "Delete Message",
+                subTitle = "Are you sure you want to delete this message?"
+            )*/
+            showOptionDialog({
+                showDeleteDialog(
+                    message,
+                    title = "Delete Message",
+                    subTitle = "Are you sure you want to delete this message?"
+                )
+            }, { CommonUtil.showToastMessage(this, "Coming soon") })
         }
 
         val uid = FirebaseUtil().currentUserId()
@@ -388,7 +406,7 @@ class ChatActivity : AppCompatActivity() {
 
             }
         })
-
+        val typingMessage = Message1(isTyping = true)
         // for typing... status
         val receiver = FirebaseDatabase.getInstance().getReference("Users").child(receiverUid!!)
             .child("typing")
@@ -398,19 +416,17 @@ class ChatActivity : AppCompatActivity() {
                 if (isTyping) {
                     // Display "typing..." when the receiver is typing
                     binding.onlineStatus.text = "typing..."
+                    if (!messageList.contains(typingMessage)) {
+                        messageList.add(typingMessage)
+                        adapter.notifyItemInserted(messageList.size - 1)
+                    }
                 } else {
                     binding.onlineStatus.text = "online"
-// If not typing, maintain the current online/offline status
-                    /*userStatusRef.addListenerForSingleValueEvent(object : ValueEventListener {
-                        override fun onDataChange(snapshot: DataSnapshot) {
-                            val status = snapshot.getValue(String::class.java)
-                            binding.onlineStatus.text = if (status == "offline") "Offline" else "Online"
-                        }
-
-                        override fun onCancelled(error: DatabaseError) {
-                            Log.e("ChatActivity", "Error retrieving status: ${error.message}")
-                        }
-                    })*/
+                    if (messageList.contains(typingMessage)) {
+                        val index = messageList.indexOf(typingMessage)
+                        messageList.remove(typingMessage)
+                        adapter.notifyItemRemoved(index)
+                    }
                 }
             }
 
@@ -490,7 +506,7 @@ class ChatActivity : AppCompatActivity() {
     }
 
 
-        private fun sendNotificationToReceiver(
+    private fun sendNotificationToReceiver(
         receiverToken: String,
         message: String,
         senderName: String,
@@ -553,17 +569,69 @@ class ChatActivity : AppCompatActivity() {
     }
 
 
-    private fun showDeleteDialog(message: Message1) {
-        AlertDialog.Builder(this)
-            .setTitle("Delete Message")
-            .setMessage("Are you sure you want to delete this message?")
-            .setPositiveButton("Delete") { _, _ ->
-                // Delete the message
-                deleteMessage(message)
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
+    private fun showDeleteDialog(message: Message1, title: String, subTitle: String) {
+
+        val dialogView = layoutInflater.inflate(R.layout.custom_dialog, null)
+        val positiveButton = dialogView.findViewById<Button>(R.id.positiveButton)
+        val negativeButton = dialogView.findViewById<Button>(R.id.negativeButton)
+
+        val dialog = AlertDialog.Builder(this)
+        dialog.setView(dialogView)
+        dialog.setCancelable(true)
+        val alertDialog = dialog.create()
+
+        alertDialog.show()
+
+        val dialogTitle = dialogView.findViewById<TextView>(R.id.dialogTitle)
+        val dialogSubTitle = dialogView.findViewById<TextView>(R.id.dialogSubTitle)
+        dialogTitle.text = title
+        dialogSubTitle.text = subTitle
+
+
+        positiveButton.setOnClickListener {
+            deleteMessage(message)
+            alertDialog.dismiss()
+        }
+        negativeButton.setOnClickListener {
+            alertDialog.dismiss()
+        }
+
     }
+
+    private fun showOptionDialog(onOption1Click: () -> Unit, onOption2Click: () -> Unit) {
+
+        // Inflate custom dialog layout
+        val dialogView = layoutInflater.inflate(R.layout.custom_dialog2, null)
+
+        // Access views from the custom layout
+        val dialogTitle = dialogView.findViewById<TextView>(R.id.dialogTitle)
+        val option1View = dialogView.findViewById<TextView>(R.id.option1)
+        val option2View = dialogView.findViewById<TextView>(R.id.option2)
+
+        // Set title and subtitle
+        dialogTitle.text = "Select an option"
+        option1View.text = "Delete Message"
+        option2View.text = "Edit Message"
+
+        // Create and show the dialog
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        dialog.show()
+
+        // Set click listeners for the options
+        option1View.setOnClickListener {
+            onOption1Click()
+            dialog.dismiss()
+        }
+        option2View.setOnClickListener {
+            onOption2Click()
+            dialog.dismiss()
+        }
+    }
+
 
     private fun deleteMessage(message: Message1) {
         val messageRef = databaseReference.child("chats").child(senderRoom!!)
@@ -585,7 +653,7 @@ class ChatActivity : AppCompatActivity() {
     }
 
 
-    fun showPopupMenu(launcher: ActivityResultLauncher<Intent>,view: View) {
+    fun showPopupMenu(launcher: ActivityResultLauncher<Intent>, view: View) {
 
         val popupMenu = PopupMenu(this, view)
         popupMenu.menuInflater.inflate(R.menu.popmenuforimg, popupMenu.menu)
@@ -597,7 +665,8 @@ class ChatActivity : AppCompatActivity() {
                 }
 
                 R.id.gallery -> {
-                    val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+                    val intent =
+                        Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
                     intent.type = "image/*"
                     launcher.launch(intent)
                     true
@@ -617,7 +686,7 @@ class ChatActivity : AppCompatActivity() {
         popupMenu.show()
     }
 
-    fun showChatLockMenu(view: View,name:String?) {
+    fun showChatLockMenu(view: View, name: String?,imageUrl: String?) {
         val popupMenu = PopupMenu(this, view)
         popupMenu.menuInflater.inflate(R.menu.chatlock, popupMenu.menu)
         popupMenu.setOnMenuItemClickListener { menuItem ->
@@ -631,15 +700,22 @@ class ChatActivity : AppCompatActivity() {
                     }
                     true
                 }
+
                 R.id.disablechatLock -> {
                     if (prefs.getChatPin(receiverUid!!).isNullOrEmpty()) {
                         CommonUtil.showToastMessage(this, "PIN is not set")
 
-                    }else{
+                    } else {
                         prefs.clearChatPin(receiverUid!!)
-                        FirebaseDatabase.getInstance().getReference().child("Users").child(FirebaseUtil().currentUserId()!!).child("Secret PIN").child(name.toString()).removeValue()
+                        FirebaseDatabase.getInstance().getReference().child("Users")
+                            .child(FirebaseUtil().currentUserId()!!).child("Secret PIN")
+                            .child(name.toString()).removeValue()
                         CommonUtil.showToastMessage(this, "This chat is now un-locked")
                     }
+                    true
+                }
+                R.id.imageDownload -> {
+                    downloadImage(imageUrl!!)
                     true
                 }
 
@@ -663,8 +739,10 @@ class ChatActivity : AppCompatActivity() {
         builder.setPositiveButton("Set") { dialog, _ ->
             val pin = input.text.toString()
             if (pin.length == 4) {
-                prefs.setChatPin(receiverUid!!,pin)
-                FirebaseDatabase.getInstance().getReference().child("Users").child(FirebaseUtil().currentUserId()!!).child("Secret PIN").child(name.toString()).setValue(pin)
+                prefs.setChatPin(receiverUid!!, pin)
+                FirebaseDatabase.getInstance().getReference().child("Users")
+                    .child(FirebaseUtil().currentUserId()!!).child("Secret PIN")
+                    .child(name.toString()).setValue(pin)
                 CommonUtil.showToastMessage(this, "PIN set successfully!")
             } else {
                 CommonUtil.showToastMessage(this, "PIN must be 4 digits!")
@@ -677,8 +755,7 @@ class ChatActivity : AppCompatActivity() {
     }
 
 
-
-    private fun showUserDetailDialog(imageUrl: String?,username: String,userabout: String) {
+    private fun showUserDetailDialog(imageUrl: String?, username: String, userabout: String) {
         val dialogBuilder = android.app.AlertDialog.Builder(this)
         val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_user_details, null)
         dialogBuilder.setView(dialogView)
@@ -686,7 +763,6 @@ class ChatActivity : AppCompatActivity() {
         val imageView = dialogView.findViewById<CircleImageView>(R.id.imageUserDetail)
         val userName = dialogView.findViewById<TextView>(R.id.userName)
         val userAbout = dialogView.findViewById<TextView>(R.id.about)
-
 
 
         // Load the image into the ImageView
@@ -712,7 +788,82 @@ class ChatActivity : AppCompatActivity() {
         val dialog = dialogBuilder.create()
         dialog.show()
     }
+
+    private fun hasStoragePermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            true // No need for storage permission on Android 10+
+        } else {
+            ContextCompat.checkSelfPermission(this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    // Request storage permission
+    private fun requestStoragePermission() {
+        ActivityCompat.requestPermissions(
+            this,
+            arrayOf(android.Manifest.permission.WRITE_EXTERNAL_STORAGE),
+            1001
+        )
+    }
+
+    // Download image from URL
+    private fun downloadImage(imageUrl: String) {
+        Thread {
+            try {
+                val url = URL(imageUrl)
+                val connection: HttpURLConnection = url.openConnection() as HttpURLConnection
+                connection.doInput = true
+                connection.connect()
+
+                val inputStream: InputStream = connection.inputStream
+                val picturesDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES) // Public Pictures folder
+
+                val fileName = "profile_picture_${System.currentTimeMillis()}.jpg" // Unique file name
+                val file = File(picturesDir, fileName)
+                val outputStream = FileOutputStream(file)
+
+                inputStream.copyTo(outputStream)
+
+                outputStream.close()
+                inputStream.close()
+
+                // Notify the media scanner to index the new image
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    MediaScannerConnection.scanFile(
+                        this,
+                        arrayOf(file.absolutePath),
+                        arrayOf("image/jpeg")
+                    ) { path, uri ->
+                        runOnUiThread {
+                            Toast.makeText(this, "Image saved to gallery: $path", Toast.LENGTH_LONG).show()
+                        }
+                        Log.d("image download","Image saved to gallery: $path")
+                    }
+                } else {
+                    // Add to MediaStore for older versions
+                    val contentValues = ContentValues().apply {
+                        put(MediaStore.Images.Media.DATA, file.absolutePath)
+                        put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+                        put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
+                        put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis() / 1000)
+                    }
+
+                    val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+                    runOnUiThread {
+                        Toast.makeText(this, "Image saved to gallery: $uri", Toast.LENGTH_LONG).show()
+                    }
+                }
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                runOnUiThread {
+                    Toast.makeText(this, "Failed to download image", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }.start()
+    }
 }
+
 
 
 

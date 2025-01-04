@@ -89,8 +89,9 @@ class Login : AppCompatActivity() {
 
         number.setOnClickListener {
 
-            val intent = Intent(this, Phone::class.java)
-            startActivity(intent)
+           /* val intent = Intent(this, Phone::class.java)
+            startActivity(intent)*/
+            CommonUtil.showToastMessage(this,"Coming soon..")
         }
 
         binding.forgotPassword.setOnClickListener{
@@ -231,17 +232,29 @@ class Login : AppCompatActivity() {
     }
 
     private fun showNoInternetDialog() {
-        val builder = AlertDialog.Builder(this)
-        builder.setTitle("No Internet Connection")
-        builder.setMessage("Please check your internet connection and try again.")
 
-        builder.setPositiveButton("OK") { dialog, which ->
-            // Handle the click event, e.g., close the app
+        val dialogView = layoutInflater.inflate(R.layout.custom_dialog, null)
+        val positiveButton = dialogView.findViewById<Button>(R.id.positiveButton)
+        val negativeButton = dialogView.findViewById<Button>(R.id.negativeButton)
+        negativeButton.visibility = View.GONE
+        positiveButton.text = "OK"
+
+        val dialog = AlertDialog.Builder(this)
+        dialog.setView(dialogView)
+        dialog.setCancelable(true)
+        val alertDialog = dialog.create()
+
+        alertDialog.show()
+
+        val dialogTitle = dialogView.findViewById<TextView>(R.id.dialogTitle)
+        val dialogSubTitle = dialogView.findViewById<TextView>(R.id.dialogSubTitle)
+        dialogTitle.text = "No Internet Connection"
+        dialogSubTitle.text = "Please check your internet connection and try again."
+
+
+        positiveButton.setOnClickListener {
             finish()
         }
-        builder.setCancelable(false)
-        builder.show()
-
 
     }
 

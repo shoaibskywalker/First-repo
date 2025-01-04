@@ -2,7 +2,9 @@ package com.test.loginfirebase
 
 import android.os.Bundle
 import android.util.Log
+import android.widget.Button
 import android.widget.ProgressBar
+import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -107,15 +109,31 @@ class AiChat : AppCompatActivity() {
         }
     }
     private fun showDeleteDialog(currentUserName: String, currentUid: String) {
-        AlertDialog.Builder(this)
-            .setTitle("Delete Message")
-            .setMessage("Are you sure you want to delete this message?")
-            .setPositiveButton("Delete") { _, _ ->
-                // Delete the message
-                deleteMessage(currentUserName, currentUid)
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
+        
+        val dialogView = layoutInflater.inflate(R.layout.custom_dialog, null)
+        val positiveButton = dialogView.findViewById<Button>(R.id.positiveButton)
+        val negativeButton = dialogView.findViewById<Button>(R.id.negativeButton)
+
+        val dialog = AlertDialog.Builder(this)
+        dialog.setView(dialogView)
+        dialog.setCancelable(true)
+        val alertDialog = dialog.create()
+
+        alertDialog.show()
+
+        val dialogTitle = dialogView.findViewById<TextView>(R.id.dialogTitle)
+        val dialogSubTitle = dialogView.findViewById<TextView>(R.id.dialogSubTitle)
+        dialogTitle.text = "Delete Message"
+        dialogSubTitle.text = "Are you sure you want to delete this message?"
+
+
+        positiveButton.setOnClickListener {
+            deleteMessage(currentUserName, currentUid)
+            alertDialog.dismiss()
+        }
+        negativeButton.setOnClickListener {
+            alertDialog.dismiss()
+        }
     }
 
     private fun addMessageToChat(message: String, isUser: Boolean) {
