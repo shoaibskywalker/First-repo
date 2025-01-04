@@ -5,6 +5,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.constraintlayout.widget.ConstraintSet.Constraint
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.test.loginfirebase.R
@@ -19,17 +21,25 @@ class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) 
 
     val ITEM_RECEIVE = 1
     val ITEM_SEND = 2
+    val ITEM_TYPING = 3
 
     var onMessageLongClickListener: ((Message) -> Unit)? = null
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
 
-        if (viewType == 1) {
-            val view = LayoutInflater.from(context).inflate(R.layout.receivemessage, parent, false)
-            return ReceiveViewHolder(view)
-        } else {
-            val view = LayoutInflater.from(context).inflate(R.layout.sendmessage, parent, false)
-            return SendViewHolder(view)
+        return when (viewType) {
+            ITEM_TYPING -> {
+                val view = LayoutInflater.from(context).inflate(R.layout.typing_indicator, parent, false)
+                TypingViewHolder(view)
+            }
+            ITEM_RECEIVE -> {
+                val view = LayoutInflater.from(context).inflate(R.layout.receivemessage, parent, false)
+                ReceiveViewHolder(view)
+            }
+            else -> {
+                val view = LayoutInflater.from(context).inflate(R.layout.sendmessage, parent, false)
+                SendViewHolder(view)
+            }
         }
     }
 
@@ -40,56 +50,47 @@ class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) 
     override fun getItemViewType(position: Int): Int {
         val currentpossition = messageList[position]
 
-        return if (FirebaseUtil().currentUserId().equals(currentpossition.senderId)) {
-            ITEM_SEND
-        } else {
-            ITEM_RECEIVE
+        return when {
+            currentpossition.isTyping -> ITEM_TYPING // New type for typing indicator
+            FirebaseUtil().currentUserId() == currentpossition.senderId -> ITEM_SEND
+            else -> ITEM_RECEIVE
         }
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val currentpossition = messageList[position]
 
-        if (holder.javaClass == SendViewHolder::class.java) {
-
-            val viewHolder = holder as SendViewHolder
-
-            holder.sendText.text = currentpossition.message
-            holder.timeSend.text = currentpossition.timeStamp?.let {
-                Date(
-                    it
-                )
-            }?.let { SimpleDateFormat("hh:mm a", Locale.getDefault()).format(it) }
-
-            holder.dateSend.text = currentpossition.dateStamp?.let {
-                Date(
-                    it
-                )
-            }?.let { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(it) }
-
-            viewHolder.itemView.setOnLongClickListener {
-                onMessageLongClickListener!!.invoke(currentpossition)
-                true
+        when (holder) {
+            is SendViewHolder -> {
+                holder.sendText.text = currentpossition.message
+                holder.timeSend.text = currentpossition.timeStamp?.let {
+                    SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(it))
+                }
+                holder.dateSend.text = currentpossition.dateStamp?.let {
+                    SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(it))
+                }
+                holder.itemView.setOnLongClickListener {
+                    onMessageLongClickListener?.invoke(currentpossition)
+                    true
+                }
             }
-        } else {
-            val viewHolderReceive = holder as ReceiveViewHolder
+            is ReceiveViewHolder -> {
+                holder.receiveText.text = currentpossition.message
+                holder.timeReceive.text = currentpossition.timeStamp?.let {
+                    SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(it))
+                }
+                holder.dateReceive.text = currentpossition.dateStamp?.let {
+                    SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(it))
+                }
 
-            holder.receiveText.text = currentpossition.message
-            holder.timeReceive.text = currentpossition.timeStamp?.let {
-                Date(
-                    it
-                )
-            }?.let { SimpleDateFormat("hh:mm a", Locale.getDefault()).format(it) }
-
-            holder.dateReceive.text = currentpossition.dateStamp?.let {
-                Date(
-                    it
-                )
-            }?.let { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(it) }
-
-            viewHolderReceive.itemView.setOnLongClickListener {
-                onMessageLongClickListener!!.invoke(currentpossition)
-                true
+                holder.itemView.setOnLongClickListener {
+                    onMessageLongClickListener?.invoke(currentpossition)
+                    true
+                }
+            }
+            is TypingViewHolder -> {
+                // TypingViewHolder requires no binding since it's static (just an ImageView)
+                holder.typingIndicatior.visibility = View.VISIBLE
             }
         }
     }
@@ -101,7 +102,6 @@ class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) 
         val timeSend = itemView.findViewById<TextView>(R.id.sendTimeSend)!!
         val dateSend = itemView.findViewById<TextView>(R.id.dateSend)!!
 
-
     }
 
     class ReceiveViewHolder(itemView: View) : ViewHolder(itemView) {
@@ -110,7 +110,11 @@ class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) 
         val timeReceive = itemView.findViewById<TextView>(R.id.sendTimeReceive)!!
         val dateReceive = itemView.findViewById<TextView>(R.id.dateReceive)!!
 
-
     }
+
+    class TypingViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView){
+        val typingIndicatior = itemView.findViewById<ConstraintLayout>(R.id.indicator)
+    }
+
 
 }
