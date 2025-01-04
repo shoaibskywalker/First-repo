@@ -555,7 +555,7 @@ class MainActivity : AppCompatActivity() {
         negativeButton: String,
         positiveButton: String
     ) {
-        val builder = AlertDialog.Builder(this)
+       /* val builder = AlertDialog.Builder(this)
         builder.setTitle(title)
         builder.setMessage(message)
 
@@ -575,7 +575,44 @@ class MainActivity : AppCompatActivity() {
             }
         }
         builder.setCancelable(title != "No Internet Connection")
-        builder.show()
+        builder.show()*/
+
+
+        val dialogView = layoutInflater.inflate(R.layout.custom_dialog, null)
+        val positiveButtonDialog = dialogView.findViewById<Button>(R.id.positiveButton)
+        val negativeButtonDialog = dialogView.findViewById<Button>(R.id.negativeButton)
+        positiveButtonDialog.text = positiveButton
+        negativeButtonDialog.text = negativeButton
+
+        val dialog = AlertDialog.Builder(this)
+        dialog.setView(dialogView)
+        dialog.setCancelable(true)
+        val alertDialog = dialog.create()
+
+        alertDialog.show()
+
+        val dialogTitle = dialogView.findViewById<TextView>(R.id.dialogTitle)
+        val dialogSubTitle = dialogView.findViewById<TextView>(R.id.dialogSubTitle)
+        dialogTitle.text = title
+        dialogSubTitle.text = message
+
+
+        positiveButtonDialog.setOnClickListener {
+            if (positiveButton == "Enable Internet") {
+                openDataSettings()
+            } else {
+                logoutUser()
+            }
+            alertDialog.dismiss()
+        }
+        negativeButtonDialog.setOnClickListener {
+            if (negativeButton == "Close app") {
+                finish()
+            } else {
+                alertDialog.dismiss()
+            }
+        }
+
     }
 
 
