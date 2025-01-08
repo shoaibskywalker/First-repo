@@ -14,19 +14,19 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
-import com.test.loginfirebase.data.model.Status
+import com.test.loginfirebase.data.model.Story
 import com.test.loginfirebase.databinding.StatusItemBinding
 import com.test.loginfirebase.utils.sessionManager.UserSessionManager
 import omari.hamza.storyview.StoryView
 import omari.hamza.storyview.model.MyStory
 import java.util.Date
 
-class StatusAdapter(val context: Context, var statusList: List<Status>) :
-    RecyclerView.Adapter<StatusAdapter.ViewHolder>() {
+class StoryAdapter(val context: Context, var storyList: List<Story>) :
+    RecyclerView.Adapter<StoryAdapter.ViewHolder>() {
     private val databaseReference: DatabaseReference by lazy {
         FirebaseDatabase.getInstance().getReference("Users")
     }
-    private var storyData: Status? = null
+    private var storyData: Story? = null
     private  val prefs: UserSessionManager by lazy {
         UserSessionManager(context)
     }
@@ -41,7 +41,7 @@ class StatusAdapter(val context: Context, var statusList: List<Status>) :
 
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val currentItem = statusList[position]
+        val currentItem = storyList[position]
 
         holder.binding.activeStory.visibility = View.VISIBLE
 // Show only the first 7 letters of the name and add "..." if it’s longer
@@ -69,7 +69,7 @@ class StatusAdapter(val context: Context, var statusList: List<Status>) :
     }
 
     override fun getItemCount(): Int {
-        return statusList.size
+        return storyList.size
     }
 
 
@@ -82,7 +82,7 @@ class StatusAdapter(val context: Context, var statusList: List<Status>) :
             override fun onDataChange(snapshot: DataSnapshot) {
                 val storiesList = ArrayList<MyStory>()
                 for (storySnapshot in snapshot.children) {
-                    storyData = storySnapshot.getValue(Status::class.java)
+                    storyData = storySnapshot.getValue(Story::class.java)
                     // Assuming the date field exists
                     if (storyData?.imageUrl != null && storyData!!.timestamp != null) {
                         val dateConvert = Date(storyData!!.timestamp)
