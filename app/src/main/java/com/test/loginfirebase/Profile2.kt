@@ -1,5 +1,6 @@
 package com.test.loginfirebase
 
+import android.annotation.SuppressLint
 import android.app.ProgressDialog
 import android.content.Intent
 import android.graphics.Bitmap
@@ -30,9 +31,12 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
+import com.google.zxing.integration.android.IntentIntegrator
+import com.journeyapps.barcodescanner.BarcodeEncoder
 import com.stfalcon.imageviewer.StfalconImageViewer
 import com.test.loginfirebase.data.Message
 import com.test.loginfirebase.databinding.ActivityProfile2Binding
+import com.test.loginfirebase.utils.CommonUtil
 import com.test.loginfirebase.utils.CommonUtil.showToastMessage
 import com.test.loginfirebase.utils.FirebaseUtil
 import com.test.loginfirebase.utils.sessionManager.UserSessionManager
@@ -49,11 +53,46 @@ class Profile2 : AppCompatActivity() {
     private var imageUrl: String? = null
     private var about: String? = null
 
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        val result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data)
+        if (result != null) {
+            if (result.contents == null) {
+               showToastMessage(this,"Scan cancelled")
+            } else {
+               showUserDetailDialog(result.contents)
+            }
+        } else {
+            super.onActivityResult(requestCode, resultCode, data)
+        }
+    }
+
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityProfile2Binding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        binding.QRCode.setOnClickListener {
+            val qrCodeContent = "Name : ${prefs.userNameLogin}\n\nEmail : ${prefs.userEmailLogin}\n\nProfile Picture : ${prefs.currentUserPicture}"
+            // Generate the QR code
+            val qrCodeBitmap = generateQRCode(qrCodeContent)
+            // Show the dialog with QR code
+            showQRCodeDialog(qrCodeBitmap)
+        }
+
+        binding.linearScanner.setOnClickListener{
+            val integrator = IntentIntegrator(this)
+            integrator.setDesiredBarcodeFormats(IntentIntegrator.QR_CODE) // For QR code only
+            integrator.setCaptureActivity(CustomCapture::class.java) // Use your custom activity
+            integrator.setOrientationLocked(true)
+            integrator.setPrompt("Scan a QR code")
+            integrator.setCameraId(0) // Use a specific camera if needed
+            integrator.setBeepEnabled(true) // Enable beep sound
+            integrator.setBarcodeImageEnabled(false) // Don't save the scanned barcode
+            integrator.initiateScan() // Start the scanning process
+                integrator.setTorchEnabled(true)
+        }
 
         binding.appLockSwitch.setOnCheckedChangeListener { _, isChecked ->
 
@@ -161,9 +200,59 @@ class Profile2 : AppCompatActivity() {
         }
 
         binding.deleteImage.setOnClickListener {
-            showDeleteDialog(title = "Delete!", subTitle = "Are you sure you want to remove your profile picture?")
+            showDeleteDialog(
+                title = "Delete!",
+                subTitle = "Are you sure you want to remove your profile picture?"
+            )
         }
 
+    }
+
+
+    private fun showUserDetailDialog(scannedData: String) {
+
+        // Inflate custom dialog layout
+        val dialogView = layoutInflater.inflate(R.layout.custom_dialog2, null)
+
+        // Access views from the custom layout
+        val dialogTitle = dialogView.findViewById<TextView>(R.id.dialogTitle)
+        val option1View = dialogView.findViewById<TextView>(R.id.option1)
+        val option2View = dialogView.findViewById<TextView>(R.id.option2)
+
+        // Set title and subtitle
+        dialogTitle.text = "Scanned Data"
+        option1View.text = scannedData
+        option2View.visibility = View.GONE
+
+        // Create and show the dialog
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        dialog.show()
+    }
+
+    @SuppressLint("MissingInflatedId")
+    private fun showQRCodeDialog(qrCodeBitmap: Bitmap?) {
+        // Inflate the custom layout for the dialog
+        val dialogView = layoutInflater.inflate(R.layout.dialog_qr_code, null)
+
+        // Find the ImageView in the layout
+        val qrCodeImageView = dialogView.findViewById<ImageView>(R.id.qrCodeImageView)
+
+        // Set the generated QR code to the ImageView
+        qrCodeBitmap?.let {
+            qrCodeImageView.setImageBitmap(it)
+        }
+
+        // Create and show the AlertDialog
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("QR Code")
+            .setView(dialogView)
+            .create()
+
+        dialog.show()
     }
 
     private fun showBottomSheetDialog() {
@@ -176,7 +265,8 @@ class Profile2 : AppCompatActivity() {
 
         buttonSave.setOnClickListener {
             val aboutText = editAbout.text.toString()
-            databaseReference.child(FirebaseUtil().currentUserId()!!).child("About").setValue(aboutText)
+            databaseReference.child(FirebaseUtil().currentUserId()!!).child("About")
+                .setValue(aboutText)
             loadUserAboutFromFirebase(FirebaseUtil().currentUserId())
             bottomSheetDialog.dismiss() // Close the bottom sheet
         }
@@ -291,7 +381,17 @@ class Profile2 : AppCompatActivity() {
             .into(binding.image)
     }
 
-    private fun showDeleteDialog( title: String, subTitle: String) {
+    fun generateQRCode(content: String): Bitmap? {
+        return try {
+            val barcodeEncoder = BarcodeEncoder()
+            barcodeEncoder.encodeBitmap(content, com.google.zxing.BarcodeFormat.QR_CODE, 800, 800)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    private fun showDeleteDialog(title: String, subTitle: String) {
 
         val dialogView = layoutInflater.inflate(R.layout.custom_dialog, null)
         val positiveButton = dialogView.findViewById<Button>(R.id.positiveButton)
