@@ -32,7 +32,7 @@ class AiChat : AppCompatActivity() {
     private lateinit var chatAdapter: AiChatAdapter
     private lateinit var prefs: UserSessionManager
     private val messageList = ArrayList<AiMessage>()
-    var API_KEY = "AIzaSyDooL54T34k0lBf4vcmOTHQRDCAoSCN91s"
+    private var API_KEY = "AIzaSyDooL54T34k0lBf4vcmOTHQRDCAoSCN91s"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
