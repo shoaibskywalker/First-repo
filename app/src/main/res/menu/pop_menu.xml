@@ -22,7 +22,11 @@
 
                 <item android:id="@+id/rate"
                     android:icon="@drawable/baseline_star_rate_24"
-                    android:title="Rate Us" />
+                    android:title="Rate Us"/>
+
+                <item android:id="@+id/invite_friend"
+                    android:icon="@drawable/invite_friend_icon"
+                    android:title="Invite friends"/>
             </menu>
         </item>
     </group>
