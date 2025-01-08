@@ -40,7 +40,7 @@ class UserAdapter(
     private val databaseReference: DatabaseReference by lazy {
         FirebaseDatabase.getInstance().getReference("Users")
     }
-    private  val prefs: UserSessionManager by lazy {
+    private val prefs: UserSessionManager by lazy {
         UserSessionManager(context)
     }
     private val firebaseAuth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
@@ -93,7 +93,6 @@ class UserAdapter(
                             "Failed to listen for image URL changes: ${error.message}"
                         )
                     }
-
                 })
         }
 
@@ -135,7 +134,7 @@ class UserAdapter(
 
             if (!savedPin.isNullOrEmpty()) {
                 // If PIN is set, show the dialog to enter the PIN
-                showEnterPinDialog(context,users) {
+                showEnterPinDialog(context, users) {
                     // On successful PIN validation, open the chat
                     openChat(context, users)
                 }
@@ -144,13 +143,13 @@ class UserAdapter(
                 openChat(context, users)
             }
 
-           /* val intent = Intent(context, ChatActivity::class.java)
+            /* val intent = Intent(context, ChatActivity::class.java)
 
-            intent.putExtra("name", users.name)
-            intent.putExtra("uid", users.uid)
-            intent.putExtra("imageUrl", users.profileImageUrl)
+             intent.putExtra("name", users.name)
+             intent.putExtra("uid", users.uid)
+             intent.putExtra("imageUrl", users.profileImageUrl)
 
-            context.startActivity(intent)*/
+             context.startActivity(intent)*/
         }
 
         holder.checkUserStories(users.uid)
@@ -183,7 +182,8 @@ class UserAdapter(
         val lastMessage = itemView.findViewById<TextView>(R.id.lastmessage)!!
         val lastMessageTime = itemView.findViewById<TextView>(R.id.lastmessagetime)!!
         val lastMessageDate = itemView.findViewById<TextView>(R.id.lastmessageDate)!!
-       // val you = itemView.findViewById<TextView>(R.id.you)!!
+
+        // val you = itemView.findViewById<TextView>(R.id.you)!!
         val activeStory = itemView.findViewById<View>(R.id.activeStory)!!
 
 
@@ -200,7 +200,9 @@ class UserAdapter(
         // Method to check if the user has stories
         fun checkUserStories(userId: String?) {
             if (userId != null) {
-                val databaseReference = FirebaseDatabase.getInstance().getReference("Users").child(userId).child("story")
+                val databaseReference =
+                    FirebaseDatabase.getInstance().getReference("Users").child(userId)
+                        .child("story")
                 databaseReference.addListenerForSingleValueEvent(object : ValueEventListener {
                     override fun onDataChange(snapshot: DataSnapshot) {
                         // Check if the user has stories
@@ -224,7 +226,7 @@ class UserAdapter(
     }
 
     private fun showImageDialog(imageUrl: String?) {
-        StfalconImageViewer.Builder(context, listOf( imageUrl)) { view, image ->
+        StfalconImageViewer.Builder(context, listOf(imageUrl)) { view, image ->
             // Load the image into the viewer using Glide
             Glide.with(context)
                 .load(image)
@@ -341,7 +343,7 @@ class UserAdapter(
         return calendar.timeInMillis
     }
 
-    private fun showEnterPinDialog(context: Context,users: User, onSuccess: () -> Unit) {
+    private fun showEnterPinDialog(context: Context, users: User, onSuccess: () -> Unit) {
         val builder = AlertDialog.Builder(context)
         builder.setTitle("Enter PIN")
         builder.setMessage("This chat is protected by a PIN.")
@@ -354,7 +356,8 @@ class UserAdapter(
 
         builder.setPositiveButton("Unlock") { dialog, _ ->
             val enteredPin = input.text.toString()
-            val savedPin = prefs.getChatPin(users.uid!!) // Replace with your session manager's `getChatPin()` method
+            val savedPin =
+                prefs.getChatPin(users.uid!!) // Replace with your session manager's `getChatPin()` method
             if (enteredPin == savedPin) {
                 onSuccess() // Call the success callback if PIN is correct
             } else {
@@ -379,14 +382,15 @@ class UserAdapter(
         intent.putExtra("imageUrl", users.profileImageUrl)
         context.startActivity(intent)
     }
+
     private fun warningDialog(users: User) {
         androidx.appcompat.app.AlertDialog.Builder(context)
             .setTitle("Alert!")
             .setMessage("This will clear all messages\nThe secret pin, if set, will also be cleared")
             .setPositiveButton("OK") { _, _ ->
                 senderRoom = users.uid + currentUserId
-                deleteAllMessagesForUser(users,senderRoom!!){
-                    openChat(context,users)
+                deleteAllMessagesForUser(users, senderRoom!!) {
+                    openChat(context, users)
                 }
 
             }
@@ -394,7 +398,7 @@ class UserAdapter(
             .show()
     }
 
-    private fun deleteAllMessagesForUser(users: User,senderRoom: String, onComplete: () -> Unit) {
+    private fun deleteAllMessagesForUser(users: User, senderRoom: String, onComplete: () -> Unit) {
         val database = FirebaseDatabase.getInstance()
         val messagesRef = database.getReference("chats").child(senderRoom).child("messages")
 
@@ -402,7 +406,9 @@ class UserAdapter(
         messagesRef.removeValue().addOnCompleteListener { task ->
             if (task.isSuccessful) {
                 prefs.clearChatPin(users.uid!!)
-                FirebaseDatabase.getInstance().getReference().child("Users").child(FirebaseUtil().currentUserId()!!).child("Secret PIN").child(users.name.toString()).removeValue()
+                FirebaseDatabase.getInstance().getReference().child("Users")
+                    .child(FirebaseUtil().currentUserId()!!).child("Secret PIN")
+                    .child(users.name.toString()).removeValue()
                 Toast.makeText(context, "All messages deleted!", Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(context, "Failed to delete messages", Toast.LENGTH_SHORT).show()
