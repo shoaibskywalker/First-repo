@@ -23,6 +23,7 @@ import android.text.TextWatcher
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
+import android.view.WindowManager
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.Button
 import android.widget.EditText
@@ -143,6 +144,12 @@ class ChatActivity : AppCompatActivity() {
                 Log.e("Error", "Failed to get server token: ${e.message}")
             }
         }
+
+        // Disable screenshots for this activity
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_SECURE,
+            WindowManager.LayoutParams.FLAG_SECURE
+        )
 
         val intentFilter = IntentFilter("MESSAGE_SENT")
         registerReceiver(messageSentReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED)
