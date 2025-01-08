@@ -13,21 +13,26 @@ import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.ContactsContract
 import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
 import android.view.View
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
+import android.widget.ListView
 import android.widget.ProgressBar
 import android.widget.RatingBar
+import android.widget.SearchView
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
@@ -51,12 +56,12 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.storage.FirebaseStorage
-import com.test.loginfirebase.adapter.StatusAdapter
+import com.test.loginfirebase.adapter.StoryAdapter
 import com.test.loginfirebase.adapter.UserAdapter
 import com.test.loginfirebase.broadcastReceiver.BatteryLevelReceiver
 import com.test.loginfirebase.data.Message
 import com.test.loginfirebase.data.User
-import com.test.loginfirebase.data.model.Status
+import com.test.loginfirebase.data.model.Story
 import com.test.loginfirebase.databinding.ActivityMainBinding
 import com.test.loginfirebase.utils.CommonUtil
 import com.test.loginfirebase.utils.FirebaseStoryWorker
@@ -105,10 +110,10 @@ class MainActivity : AppCompatActivity() {
     var senderRoom: String? = null
     var receiverUid: String? = null
     private lateinit var currentUserUid: String
-    private lateinit var statusAdapter: StatusAdapter
-    private lateinit var userStatus: ArrayList<MyStory>
+    private lateinit var storyAdapter: StoryAdapter
+    private lateinit var userStory: ArrayList<MyStory>
     private var canNavigateToStoryView = true
-    private val statusList = mutableListOf<Status>()
+    private val storyList = mutableListOf<Story>()
 
 
     private val unreadStatusReceiver = object : BroadcastReceiver() {
@@ -151,7 +156,7 @@ class MainActivity : AppCompatActivity() {
             openImagePicker()
 
         }
-        userStatus = ArrayList()
+        userStory = ArrayList()
         binding.profileStoryImage.setOnClickListener {
             fetchStories()
         }
@@ -159,10 +164,10 @@ class MainActivity : AppCompatActivity() {
         askForNotificationPermission()
 
 
-        statusAdapter = StatusAdapter(this, statusList)
+        storyAdapter = StoryAdapter(this, storyList)
         binding.recyclerViewStatus.layoutManager =
             LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
-        binding.recyclerViewStatus.adapter = statusAdapter
+        binding.recyclerViewStatus.adapter = storyAdapter
         loadActiveStories()
 
 
@@ -352,6 +357,8 @@ class MainActivity : AppCompatActivity() {
                 R.id.rate -> {
                     drawlayout.closeDrawer(GravityCompat.START)
                 }
+                R.id.invite_friend -> requestContactPermission()
+
             }
             true
         }
@@ -387,13 +394,13 @@ class MainActivity : AppCompatActivity() {
                     filterList.clear()
                     for (postSnapshot in snapshot.children) {
 
-                        val currentUser = postSnapshot.getValue(User::class.java)
-                        senderRoom = currentUserId + currentUser?.uid
-                        receiverUid = currentUser?.uid
-                        if (mAuth.currentUser?.uid != currentUser?.uid) {
+                        val opponentUser = postSnapshot.getValue(User::class.java)
+                        senderRoom = currentUserId + opponentUser?.uid
+                        receiverUid = opponentUser?.uid
+                        if (mAuth.currentUser?.uid != opponentUser?.uid) {
 
-                            userList.add(currentUser!!)
-                            filterList.add(currentUser)
+                            userList.add(opponentUser!!)
+                            filterList.add(opponentUser)
                         }
 
                     }
@@ -431,7 +438,7 @@ class MainActivity : AppCompatActivity() {
 
         databaseReference.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                statusList.clear() // Clear the list to avoid duplicates
+                storyList.clear() // Clear the list to avoid duplicates
 
                 for (userSnapshot in snapshot.children) {
                     val uid = userSnapshot.key
@@ -450,7 +457,7 @@ class MainActivity : AppCompatActivity() {
 
                             if (storyUserId != null && name != null && imageUrl != null && !isUserAdded) {
                                 prefs.saveReceiverProfilePictureUrl(storyUserId, imageUrl)
-                                statusList.add(Status(imageUrl = imageUrl, name = name, userId = storyUserId))
+                                storyList.add(Story(imageUrl = imageUrl, name = name, userId = storyUserId))
                                 isUserAdded = true // Mark user as added to prevent duplicates
                             }
                         }
@@ -458,7 +465,7 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 // Notify the adapter after data change
-                statusAdapter.notifyDataSetChanged()
+                storyAdapter.notifyDataSetChanged()
             }
 
             override fun onCancelled(error: DatabaseError) {
@@ -555,28 +562,6 @@ class MainActivity : AppCompatActivity() {
         negativeButton: String,
         positiveButton: String
     ) {
-       /* val builder = AlertDialog.Builder(this)
-        builder.setTitle(title)
-        builder.setMessage(message)
-
-        builder.setNegativeButton(negativeButton) { dialog, which ->
-            // Handle the click event, e.g., close the app
-            if (negativeButton == "Close app") {
-                finish()
-            } else {
-                dialog.dismiss()
-            }
-        }
-        builder.setPositiveButton(positiveButton) { dialog, which ->
-            if (positiveButton == "Enable Internet") {
-                openDataSettings()
-            } else {
-                logoutUser()
-            }
-        }
-        builder.setCancelable(title != "No Internet Connection")
-        builder.show()*/
-
 
         val dialogView = layoutInflater.inflate(R.layout.custom_dialog, null)
         val positiveButtonDialog = dialogView.findViewById<Button>(R.id.positiveButton)
@@ -646,7 +631,6 @@ class MainActivity : AppCompatActivity() {
         //  Toast.makeText(this@MainActivity, "Log out Successfully", Toast.LENGTH_LONG).show()
         CommonUtil.showToastMessage(this, "Log out Successfully")
         ZegoUIKitPrebuiltCallService.unInit()
-
     }
 
 
@@ -846,7 +830,7 @@ class MainActivity : AppCompatActivity() {
                     "uid" to userId
                 )*/
                 databaseReference.child(storyId).setValue(
-                    Status(
+                    Story(
                         imageUrl = imageUrl,
                         name = prefs.userNameLogin!!,
                         timestamp = uploadTime,
@@ -902,7 +886,7 @@ class MainActivity : AppCompatActivity() {
                     val storiesList = ArrayList<MyStory>() // Change to ArrayList
 
                     for (storySnapshot in snapshot.children) {
-                        val storyData = storySnapshot.getValue(Status::class.java)
+                        val storyData = storySnapshot.getValue(Story::class.java)
                         /* val imageUrl = storyData?.get("imageUrl") as? String
                          val uploadTime = storyData?.get("uploadTime") as? Long*/
                         if (storyData?.imageUrl != null && storyData.timestamp != null) {
@@ -1003,6 +987,128 @@ class MainActivity : AppCompatActivity() {
                 }
             })
         }
+    }
+
+    private fun requestContactPermission() {
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_CONTACTS)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(android.Manifest.permission.READ_CONTACTS),
+                REQUEST_CODE_READ_CONTACTS
+            )
+        } else {
+            fetchContacts()
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_CODE_READ_CONTACTS) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                fetchContacts()
+            } else {
+                CommonUtil.showToastMessage(this,"Permission denied to read contacts")
+            }
+        }
+    }
+
+    private fun fetchContacts() {
+        val contacts = mutableListOf<String>()
+        val contentResolver = contentResolver
+        val cursor = contentResolver.query(
+            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+            null,
+            null,
+            null,
+            ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " ASC"
+        )
+
+        if (cursor != null) {
+            while (cursor.moveToNext()) {
+                val name = cursor.getString(
+                    cursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
+                )
+                val phoneNumber = cursor.getString(
+                    cursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER)
+                )
+                contacts.add("$name: $phoneNumber")
+            }
+            cursor.close()
+        }
+
+        // Display contacts in a dialog or RecyclerView
+        showContactsDialog(contacts)
+    }
+
+    private fun showContactsDialog(contacts: List<String>) {
+        // Inflate the custom layout
+        val dialogView = layoutInflater.inflate(R.layout.contact_list_dialog, null)
+        val searchView = dialogView.findViewById<SearchView>(R.id.searchView)
+        val listView = dialogView.findViewById<ListView>(R.id.listView)
+        val cancelButton = dialogView.findViewById<Button>(R.id.cancel)
+        val title = dialogView.findViewById<TextView>(R.id.dialogTitle)
+
+
+        // Set up the adapter for the ListView
+        val adapter = ArrayAdapter(this, R.layout.custom_list_item, contacts)
+        listView.adapter = adapter
+
+        // Filter the list based on the search query
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                return false // We handle the filtering in real time
+            }
+
+            override fun onQueryTextChange(newText: String?): Boolean {
+                adapter.filter.filter(newText)
+                return true
+            }
+        })
+        cancelButton.setOnClickListener {
+        }
+        title.text = "Invite Friends"
+
+        // Show a dialog with the custom layout
+        val dialogBuilder = AlertDialog.Builder(this)
+        dialogBuilder.setView(dialogView)
+
+        val alertDialog = dialogBuilder.create()
+        cancelButton.setOnClickListener {
+            alertDialog.dismiss()
+        }
+        // Handle contact selection
+        listView.setOnItemClickListener { _, _, position, _ ->
+            val selectedContact = adapter.getItem(position)
+            alertDialog.dismiss()
+            // Handle selected contact (e.g., send invite via SMS)
+            sendInvite(selectedContact?.split(":")?.get(1)?.trim() ?: "")
+        }
+
+        alertDialog.show()
+    }
+
+    private fun sendInvite(phoneNumber: String) {
+        // Create an SMS intent with the phone number and an optional message
+        val smsIntent = Intent(Intent.ACTION_VIEW).apply {
+            data = Uri.parse("smsto:$phoneNumber") // Define the recipient's phone number
+            putExtra("sms_body", "Let's chat on WhatsApp! It's a fast, simple, and secure app we can use to message and call each other for free. Get it at\nhttps://www.amazon.com/dp/B0DRS9SVNL/ref=apps_sf_sta") // Optional message
+        }
+
+        // Start the SMS app to send the message
+        startActivity(smsIntent)
+    }
+
+
+
+
+    companion object {
+        const val REQUEST_CODE_READ_CONTACTS = 100
     }
 
 }
