@@ -28,6 +28,8 @@
                     android:layout_height="wrap_content"
                     android:layout_alignParentEnd="true"
                     android:text="This is a sent message"
+                    android:autoLink="all"
+                    android:linksClickable="true"
                     android:textColor="@color/white"
                     android:textSize="16sp"
                     app:layout_constraintEnd_toEndOf="parent"
