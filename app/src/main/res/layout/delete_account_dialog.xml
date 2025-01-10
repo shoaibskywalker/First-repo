@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:background="#DADADA"
+    android:padding="16dp">
+
+        <TextView
+            android:id="@+id/dialogTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Title"
+            android:textStyle="bold"
+            android:textColor="@color/black"
+            android:textSize="18sp"
+            android:paddingBottom="8dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="15dp"
+            android:gravity="center"
+            android:orientation="vertical"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/dialogSubTitle">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/whatsappButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="via Whatsapp"
+                    app:cornerRadius="10dp"
+                    app:strokeColor="@color/black"
+                    app:strokeWidth="1dp"
+                    android:backgroundTint="@color/white"
+                    android:textColor="@color/black" />
+
+                <View
+                    android:layout_width="25dp"
+                    android:layout_height="1dp"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/mailButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="via Mail"
+                    app:cornerRadius="10dp"
+                    android:backgroundTint="@color/black"
+                    android:textColor="@android:color/white"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/dialogSubTitle" />
+
+        </LinearLayout>
+</LinearLayout>
