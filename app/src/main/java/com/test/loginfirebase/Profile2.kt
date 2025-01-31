@@ -166,6 +166,10 @@ class Profile2 : AppCompatActivity() {
             finish()
         }
 
+        binding.linearDeletion.setOnClickListener{
+            startActivity(Intent(this,DeleteAccount::class.java))
+        }
+
         pickImageLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
