@@ -37,6 +37,12 @@ class UserSessionManager
             prefs.edit().putString("currentUserPicture", value).apply()
         }
 
+    var receiverUserPicture: String
+        get() = prefs.getString("receiverUserPicture", "") ?: ""
+        set(value) {
+            prefs.edit().putString("receiverUserPicture", value).apply()
+        }
+
 
      fun saveReceiverProfilePictureUrl(userId: String, url: String) {
         prefEditor.putString("profile_picture_url_$userId", url) // Use userId as part of the key
