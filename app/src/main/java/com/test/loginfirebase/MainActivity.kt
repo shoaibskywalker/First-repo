@@ -1,5 +1,6 @@
 package com.test.loginfirebase
 
+import android.annotation.SuppressLint
 import android.app.Application
 import android.app.NotificationManager
 import android.app.ProgressDialog
@@ -24,10 +25,10 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.ListView
-import android.widget.ProgressBar
 import android.widget.RatingBar
 import android.widget.SearchView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
@@ -103,7 +104,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var emailLogin: String
     private lateinit var nameLogin: String
     private lateinit var emailSignUp: String
-    private lateinit var progressBar: ProgressBar
     private lateinit var batteryLevelReceiver: BatteryLevelReceiver
     private var currentUserEmail: String? = null
     private lateinit var userDatabaseRef: DatabaseReference
@@ -173,12 +173,13 @@ class MainActivity : AppCompatActivity() {
 
         val application: Application = this.application // Android's application context
         val appID: Long = 165322314 // Replace with your actual app ID
-        val appSign = "111d125b753a66a526fbdaea8c55da579fef1eb07669c9967bd31befc86984ee" // Replace with your actual app sign
+        val appSign =
+            "111d125b753a66a526fbdaea8c55da579fef1eb07669c9967bd31befc86984ee" // Replace with your actual app sign
         val userID: String = FirebaseUtil().currentUserId()!! // Replace with your actual user ID
         val userName: String = prefs.userNameLogin!! // Replace with your actual user name
 
         val callInvitationConfig = ZegoUIKitPrebuiltCallInvitationConfig()
-        callInvitationConfig.provider = object : ZegoUIKitPrebuiltCallConfigProvider{
+        callInvitationConfig.provider = object : ZegoUIKitPrebuiltCallConfigProvider {
             override fun requireConfig(invitationData: ZegoCallInvitationData?): ZegoUIKitPrebuiltCallConfig {
                 val isVideoCall = invitationData!!.type == ZegoInvitationType.VIDEO_CALL.value
                 val isGroupCall = invitationData.invitees.size > 1
@@ -205,8 +206,10 @@ class MainActivity : AppCompatActivity() {
 
         }
 
-        callInvitationConfig.outgoingCallBackground = ColorDrawable(ContextCompat.getColor(this, R.color.caller_color))
-        callInvitationConfig.incomingCallBackground = ColorDrawable(ContextCompat.getColor(this, R.color.caller_color))
+        callInvitationConfig.outgoingCallBackground =
+            ColorDrawable(ContextCompat.getColor(this, R.color.caller_color))
+        callInvitationConfig.incomingCallBackground =
+            ColorDrawable(ContextCompat.getColor(this, R.color.caller_color))
 
 
 
@@ -227,10 +230,10 @@ class MainActivity : AppCompatActivity() {
                     Log.d("FCM", "Failed to subscribe to quotes topic.")
                 }
             }
-       // scheduleRandomQuoteWorker()
+        // scheduleRandomQuoteWorker()
 
 
-                    // val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+        // val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
         userDatabaseRef = FirebaseDatabase.getInstance().getReference("Users").child(currentUserUid)
         // Set user to "online"
         userDatabaseRef.child("status").setValue("online")
@@ -345,7 +348,6 @@ class MainActivity : AppCompatActivity() {
             when (it.itemId) {
 
                 R.id.about -> moveToAboutActivity()
-                R.id.share -> shareOurApp()
                 R.id.rate -> showRatingDialog()
                 R.id.logout -> showAlertDialog(
                     title = "Logging Out!",
@@ -353,11 +355,14 @@ class MainActivity : AppCompatActivity() {
                     negativeButton = "No",
                     positiveButton = "Yes"
                 )
+
                 R.id.profile -> moveToProfile2Activity()
                 R.id.rate -> {
                     drawlayout.closeDrawer(GravityCompat.START)
                 }
+
                 R.id.invite_friend -> requestContactPermission()
+                R.id.user_activity -> CommonUtil.showToastMessage(this, "coming soon...")
 
             }
             true
@@ -368,7 +373,6 @@ class MainActivity : AppCompatActivity() {
         }
 //User recycler view
         recyclerView = findViewById(R.id.recyclerView)
-        progressBar = findViewById(R.id.progressBar)
 
         mAuth = FirebaseAuth.getInstance()
         databaseReference = FirebaseDatabase.getInstance().getReference()
@@ -388,8 +392,7 @@ class MainActivity : AppCompatActivity() {
 
             databaseReference.child("User").addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
-
-                    progressBar.visibility = View.VISIBLE
+                    binding.shimmer.startShimmer()
                     userList.clear()
                     filterList.clear()
                     for (postSnapshot in snapshot.children) {
@@ -404,7 +407,10 @@ class MainActivity : AppCompatActivity() {
                         }
 
                     }
-                    progressBar.visibility = View.GONE
+                    recyclerView.visibility = View.VISIBLE
+                    binding.shimmer.hideShimmer()
+                    binding.shimmer.stopShimmer()
+                    binding.shimmer.visibility = View.GONE
                     mAdapter.notifyDataSetChanged()
                 }
 
@@ -457,7 +463,13 @@ class MainActivity : AppCompatActivity() {
 
                             if (storyUserId != null && name != null && imageUrl != null && !isUserAdded) {
                                 prefs.saveReceiverProfilePictureUrl(storyUserId, imageUrl)
-                                storyList.add(Story(imageUrl = imageUrl, name = name, userId = storyUserId))
+                                storyList.add(
+                                    Story(
+                                        imageUrl = imageUrl,
+                                        name = name,
+                                        userId = storyUserId
+                                    )
+                                )
                                 isUserAdded = true // Mark user as added to prevent duplicates
                             }
                         }
@@ -518,7 +530,7 @@ class MainActivity : AppCompatActivity() {
         databaseReference.child("User").addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
 
-                progressBar.visibility = View.VISIBLE
+                binding.shimmer.startShimmer()
                 userList.clear()
                 filterList.clear()
                 for (postSnapshot in snapshot.children) {
@@ -531,7 +543,9 @@ class MainActivity : AppCompatActivity() {
                     }
 
                 }
-                progressBar.visibility = View.GONE
+                binding.shimmer.hideShimmer()
+                binding.shimmer.stopShimmer()
+                binding.shimmer.visibility = View.GONE
                 mAdapter.notifyDataSetChanged()
             }
 
@@ -729,6 +743,7 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
 
+                    @SuppressLint("LogNotTimber")
                     override fun onCancelled(error: DatabaseError) {
                         Log.e(
                             "Main activity image upload",
@@ -739,18 +754,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun shareOurApp() {
-        val sendText = "Check Out this cool app!"
-
-        val sendIntent = Intent().apply {
-            action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_TEXT, sendText)
-            type = "text/plain"
-        }
-
-        val shareIntent = Intent.createChooser(sendIntent, null)
-        startActivity(shareIntent)
-    }
 
     private fun filterUsers(query: String) {
         val filteredUsers = userList.filter { user ->
@@ -837,10 +840,10 @@ class MainActivity : AppCompatActivity() {
                         userId = userId,
                     )
                 ).addOnSuccessListener {
-                        Log.d("MainActivity", "Story saved successfully.")
-                        CommonUtil.showToastMessage(this, "Story uploaded successfully!'")
+                    Log.d("MainActivity", "Story saved successfully.")
+                    CommonUtil.showToastMessage(this, "Story uploaded successfully!'")
                     scheduleStoryDeletion(userId, storyId)
-                    }
+                }
                     .addOnFailureListener { e ->
                         Log.e("MainActivity", "Failed to save story: ${e.message}")
                     }
@@ -942,6 +945,7 @@ class MainActivity : AppCompatActivity() {
                 ) == PackageManager.PERMISSION_GRANTED -> {
                     // Permission is already granted
                 }
+
                 else -> {
                     // Request notification permission
                     requestNotificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
@@ -949,7 +953,10 @@ class MainActivity : AppCompatActivity() {
             }
         } else {
             // For Android 12 and below, notifications don't require explicit permission
-            CommonUtil.showToastMessage(this,"No explicit permission required for notifications on this Android version.")
+            CommonUtil.showToastMessage(
+                this,
+                "No explicit permission required for notifications on this Android version."
+            )
         }
     }
 
@@ -958,10 +965,13 @@ class MainActivity : AppCompatActivity() {
     ) { isGranted ->
         if (isGranted) {
             // Permission granted
-            CommonUtil.showToastMessage(this,"Notifications enabled!")
+            CommonUtil.showToastMessage(this, "Notifications enabled!")
         } else {
             // Permission denied
-            CommonUtil.showToastMessage(this,"Please enable notifications for a better experience.")
+            CommonUtil.showToastMessage(
+                this,
+                "Please enable notifications for a better experience."
+            )
         }
     }
 
@@ -1013,7 +1023,7 @@ class MainActivity : AppCompatActivity() {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 fetchContacts()
             } else {
-                CommonUtil.showToastMessage(this,"Permission denied to read contacts")
+                CommonUtil.showToastMessage(this, "Permission denied to read contacts")
             }
         }
     }
@@ -1094,18 +1104,35 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun sendInvite(phoneNumber: String) {
-        // Create an SMS intent with the phone number and an optional message
-        val smsIntent = Intent(Intent.ACTION_VIEW).apply {
-            data = Uri.parse("smsto:$phoneNumber") // Define the recipient's phone number
-            putExtra("sms_body", "Let's chat on WhatsApp! It's a fast, simple, and secure app we can use to message and call each other for free. Get it at\nhttps://www.amazon.com/dp/B0DRS9SVNL/ref=apps_sf_sta") // Optional message
+        val inviteMessage =
+            "Let's chat on LinkUp! It's a fast, simple, and secure app we can use to message and call each other for free. Get it at\nhttps://www.amazon.com/dp/B0DRS9SVNL/ref=apps_sf_sta"
+
+        // Create an SMS intent
+        val smsIntent = Intent(Intent.ACTION_SENDTO).apply {
+            data = Uri.parse("smsto:$phoneNumber") // Use 'smsto:' URI for SMS
+            putExtra("sms_body", inviteMessage) // Add the message
         }
 
-        // Start the SMS app to send the message
-        startActivity(smsIntent)
+        val whatsappUri = Uri.parse("https://wa.me/$phoneNumber?text=${Uri.encode(inviteMessage)}")
+        val whatsappIntent = Intent(Intent.ACTION_VIEW).apply {
+            data = whatsappUri
+        }
+
+
+        val chooserIntent = Intent.createChooser(smsIntent, "Send Invite").apply {
+            putExtra(
+                Intent.EXTRA_INITIAL_INTENTS,
+                arrayOf(whatsappIntent)
+            ) // Only WhatsApp with message
+        }
+
+        try {
+            startActivity(chooserIntent)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, "No app found to send the invite", Toast.LENGTH_SHORT).show()
+        }
     }
-
-
-
 
     companion object {
         const val REQUEST_CODE_READ_CONTACTS = 100
