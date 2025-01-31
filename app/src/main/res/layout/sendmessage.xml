@@ -4,6 +4,14 @@
     android:paddingStart="8dp"
     android:layout_height="wrap_content">
 
+        <de.hdodenhof.circleimageview.CircleImageView
+            android:id="@+id/feeling"
+            android:layout_width="18dp"
+           android:layout_alignLeft="@+id/relativeLayout"
+            android:visibility="gone"
+            android:layout_height="18dp"
+            android:src="@drawable/portrait_placeholder" />
+
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/relativeLayout"
             android:layout_width="wrap_content"
@@ -13,7 +21,7 @@
             android:layout_marginStart="50dp"
             android:layout_alignParentRight="true"
             android:layout_marginLeft="8dp"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="2dp"
             android:layout_marginEnd="7dp"
             android:layout_marginRight="8dp"
             android:background="@drawable/messagesend"
