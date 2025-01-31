@@ -37,6 +37,16 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
+            <de.hdodenhof.circleimageview.CircleImageView
+                android:id="@+id/image"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="2dp"
+                android:src="@mipmap/ic_launcher_round"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toEndOf="@id/imageBack"
+                app:layout_constraintTop_toTopOf="parent" />
+
             <TextView
                 android:id="@+id/toolbarName"
                 android:layout_width="wrap_content"
@@ -47,7 +57,7 @@
                 android:textColor="@color/white"
                 android:textSize="23sp"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toEndOf="@+id/imageBack"
+                app:layout_constraintStart_toEndOf="@+id/image"
                 app:layout_constraintTop_toTopOf="parent" />
 
             <TextView
@@ -55,10 +65,10 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
-                android:text="Dummy Online"
+                android:text=""
                 android:textColor="@color/white"
                 android:textSize="9sp"
-                app:layout_constraintStart_toEndOf="@+id/imageBack"
+                app:layout_constraintStart_toEndOf="@+id/image"
                 app:layout_constraintTop_toBottomOf="@+id/toolbarName" />
 
             <de.hdodenhof.circleimageview.CircleImageView
