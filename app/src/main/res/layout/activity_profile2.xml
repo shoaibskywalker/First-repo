@@ -399,6 +399,36 @@
                 android:textSize="14sp" />
         </LinearLayout>
 
+        <LinearLayout
+            android:id="@+id/linearDeletion"
+            android:layout_width="match_parent"
+            android:layout_height="70dp"
+            android:layout_marginStart="30dp"
+            android:layout_marginEnd="10dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/linearScanner">
+
+
+            <ImageView
+                android:id="@+id/imagedelete"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@drawable/account_delete_icon" />
+
+            <TextView
+                android:id="@+id/delete_account"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="20dp"
+                android:text="Account Deletion"
+                android:clickable="true"
+                android:textColor="@color/black"
+                android:textSize="14sp" />
+        </LinearLayout>
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </ScrollView>
