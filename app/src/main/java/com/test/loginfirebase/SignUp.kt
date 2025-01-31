@@ -48,6 +48,7 @@ class SignUp : AppCompatActivity() {
 
         firebaseAuth = FirebaseAuth.getInstance()
 
+try {
 
         buttonSign.setOnClickListener {
             binding.progress.visibility = ProgressBar.VISIBLE
@@ -100,6 +101,9 @@ class SignUp : AppCompatActivity() {
             }
 
         }
+    } catch (e: Exception) {
+        CommonUtil.showToastMessage(this, e.message.toString())
+    }
 
         setUpTextWatcher()
 
