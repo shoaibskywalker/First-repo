@@ -16,23 +16,24 @@
 
         <item android:title="Communication">
             <menu>
-                <item android:id="@+id/share"
-                    android:icon="@drawable/baseline_share_24"
-                    android:title="Share"/>
+                <item android:id="@+id/invite_friend"
+                    android:icon="@drawable/invite_friend_icon"
+                    android:title="Invite friends"/>
 
                 <item android:id="@+id/rate"
                     android:icon="@drawable/baseline_star_rate_24"
                     android:title="Rate Us"/>
 
-                <item android:id="@+id/invite_friend"
-                    android:icon="@drawable/invite_friend_icon"
-                    android:title="Invite friends"/>
             </menu>
         </item>
     </group>
     <group android:checkableBehavior="single">
         <item android:title="Profile">
             <menu>
+                <item android:id="@+id/user_activity"
+                    android:icon="@drawable/user_activity_icon"
+                    android:title="Your activity"/>
+
                 <item android:id="@+id/logout"
                     android:icon="@drawable/baseline_logout_24"
                     android:iconTint="@color/red"
