@@ -1,19 +1,22 @@
 package com.test.loginfirebase.adapter
 
+import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.test.loginfirebase.R
 import com.test.loginfirebase.data.AiMessage
+import de.hdodenhof.circleimageview.CircleImageView
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 class AiChatAdapter(
-    private val messageModalArrayList: ArrayList<AiMessage>,
+    val context: Context, private val messageModalArrayList: ArrayList<AiMessage>,
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
@@ -62,6 +65,11 @@ class AiChatAdapter(
                         it
                     )
                 }?.let { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(it) }
+                Glide.with(context)
+                    .load(R.mipmap.ic_launcher_round)
+                    .placeholder(R.drawable.portrait_placeholder)
+                    .error(R.drawable.portrait_placeholder)
+                    .into(holder.imageChat)
             }
         }
     }
@@ -89,6 +97,9 @@ class AiChatAdapter(
         val botTV: TextView = itemView.findViewById(R.id.textReceive)
         val timeReceive: TextView = itemView.findViewById(R.id.sendTimeReceive)
         val dateReceive: TextView = itemView.findViewById(R.id.dateReceive)
+        val imageChat: CircleImageView = itemView.findViewById(R.id.imageChat)
+
+
 
 
     }

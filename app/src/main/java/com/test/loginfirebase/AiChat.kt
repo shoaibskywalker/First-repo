@@ -48,7 +48,7 @@ class AiChat : AppCompatActivity() {
             .child(currentUid!!).child("messages")
 
 
-        chatAdapter = AiChatAdapter(messageList)
+        chatAdapter = AiChatAdapter(this,messageList)
         binding.recyclerChat.adapter = chatAdapter
         binding.recyclerChat.layoutManager = LinearLayoutManager(this)
 

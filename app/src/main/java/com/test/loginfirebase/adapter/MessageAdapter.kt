@@ -6,12 +6,15 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.constraintlayout.widget.ConstraintSet.Constraint
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.test.loginfirebase.R
 import com.test.loginfirebase.data.Message
 import com.test.loginfirebase.utils.FirebaseUtil
+import com.test.loginfirebase.utils.sessionManager.UserSessionManager
+import de.hdodenhof.circleimageview.CircleImageView
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -19,23 +22,32 @@ import java.util.Locale
 class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) :
     RecyclerView.Adapter<ViewHolder>() {
 
+    private val prefs: UserSessionManager by lazy {
+        UserSessionManager(context)
+    }
+
     val ITEM_RECEIVE = 1
     val ITEM_SEND = 2
     val ITEM_TYPING = 3
 
     var onMessageLongClickListener: ((Message) -> Unit)? = null
+    var onMessageClickListener: ((Message) -> Unit)? = null
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
 
         return when (viewType) {
             ITEM_TYPING -> {
-                val view = LayoutInflater.from(context).inflate(R.layout.typing_indicator, parent, false)
+                val view =
+                    LayoutInflater.from(context).inflate(R.layout.typing_indicator, parent, false)
                 TypingViewHolder(view)
             }
+
             ITEM_RECEIVE -> {
-                val view = LayoutInflater.from(context).inflate(R.layout.receivemessage, parent, false)
+                val view =
+                    LayoutInflater.from(context).inflate(R.layout.receivemessage, parent, false)
                 ReceiveViewHolder(view)
             }
+
             else -> {
                 val view = LayoutInflater.from(context).inflate(R.layout.sendmessage, parent, false)
                 SendViewHolder(view)
@@ -74,6 +86,7 @@ class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) 
                     true
                 }
             }
+
             is ReceiveViewHolder -> {
                 holder.receiveText.text = currentpossition.message
                 holder.timeReceive.text = currentpossition.timeStamp?.let {
@@ -87,7 +100,41 @@ class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) 
                     onMessageLongClickListener?.invoke(currentpossition)
                     true
                 }
+
+                /*prefs.receiverUserPicture.let {
+                    Glide.with(context)
+                        .load(it)
+                        .placeholder(R.drawable.portrait_placeholder)
+                        .error(R.drawable.portrait_placeholder)
+                        // Ensure it's not loading from cache
+                        .diskCacheStrategy(DiskCacheStrategy.ALL)
+                        .into(holder.imageChat)
+                }*/
+
+                // Determine if the image should be visible
+                val isLastMessageFromSender = position == messageList.size - 1 ||
+                        messageList[position + 1].senderId != currentpossition.senderId
+
+                if (isLastMessageFromSender) {
+                    holder.imageChat.visibility = View.VISIBLE
+                    prefs.receiverUserPicture.let {
+                        Glide.with(context)
+                            .load(it)
+                            .placeholder(R.drawable.portrait_placeholder)
+                            .error(R.drawable.portrait_placeholder)
+                            .diskCacheStrategy(DiskCacheStrategy.ALL)
+                            .into(holder.imageChat)
+                    }
+                } else {
+                    holder.imageChat.visibility = View.INVISIBLE
+                }
+
+                holder.imageChat.setOnClickListener {
+                    onMessageClickListener?.invoke(currentpossition)
+                    true
+                }
             }
+
             is TypingViewHolder -> {
                 // TypingViewHolder requires no binding since it's static (just an ImageView)
                 holder.typingIndicatior.visibility = View.VISIBLE
@@ -101,6 +148,7 @@ class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) 
         val sendText = itemView.findViewById<TextView>(R.id.textSend)!!
         val timeSend = itemView.findViewById<TextView>(R.id.sendTimeSend)!!
         val dateSend = itemView.findViewById<TextView>(R.id.dateSend)!!
+        val feeling = itemView.findViewById<CircleImageView>(R.id.feeling)
 
     }
 
@@ -109,10 +157,12 @@ class MessageAdapter(val context: Context, val messageList: ArrayList<Message>) 
         val receiveText = itemView.findViewById<TextView>(R.id.textReceive)!!
         val timeReceive = itemView.findViewById<TextView>(R.id.sendTimeReceive)!!
         val dateReceive = itemView.findViewById<TextView>(R.id.dateReceive)!!
+        val imageChat = itemView.findViewById<CircleImageView>(R.id.imageChat)
+        val feeling = itemView.findViewById<CircleImageView>(R.id.feeling)
 
     }
 
-    class TypingViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView){
+    class TypingViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val typingIndicatior = itemView.findViewById<ConstraintLayout>(R.id.indicator)
     }
 

@@ -48,6 +48,7 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ServerValue
 import com.google.firebase.database.ValueEventListener
+import com.stfalcon.imageviewer.StfalconImageViewer
 import com.test.loginfirebase.adapter.MessageAdapter
 import com.test.loginfirebase.apiInterface.NotificationApiService
 import com.test.loginfirebase.data.model.Messagee
@@ -215,8 +216,14 @@ class ChatActivity : AppCompatActivity() {
         val text = findViewById<TextView>(R.id.toolbarName).apply {
             text = name
         }
+        try {
+            prefs.receiverUserPicture = imageUrl!!
+        } catch (e: Exception) {
+            Log.d("TAG", e.message.toString())
+        }
+
         binding.threedoticon.setOnClickListener {
-            showChatLockMenu(it, name,imageUrl)
+            showChatLockMenu(it, name, imageUrl)
         }
 
         databaseReference.child("Users").child(receiverUid!!).child("About").get()
@@ -229,11 +236,6 @@ class ChatActivity : AppCompatActivity() {
             }.addOnFailureListener {
                 Log.d("about", about.toString())
             }
-
-
-        binding.toolbarName.setOnClickListener {
-            showUserDetailDialog(imageUrl = imageUrl, username = name!!, userabout = about!!)
-        }
 
         binding.voiceCall.setIsVideoCall(false)
         binding.voiceCall.setResourceID("zego_uikit_call")
@@ -314,11 +316,12 @@ class ChatActivity : AppCompatActivity() {
 
             val text = editText.text.toString().trim()
             val messageObject = Message1(text, senderUid)
+            val randomKey = FirebaseDatabase.getInstance().getReference().push().key
 
             if (text.isNotEmpty()) {
                 databaseReference.child("chats")
                     .child(senderRoom!!)
-                    .child("messages").push()
+                    .child("messages").child(randomKey!!)
                     .setValue(messageObject).addOnSuccessListener {
 
                         val intent = Intent("MESSAGE_SENT")
@@ -327,7 +330,7 @@ class ChatActivity : AppCompatActivity() {
 
                         databaseReference.child("chats")
                             .child(receiverRoom!!)
-                            .child("messages").push()
+                            .child("messages").child(randomKey)
                             .setValue(messageObject).addOnSuccessListener {
                                 getReceiverFcmToken(receiverUid!!) { token ->
 
@@ -362,6 +365,9 @@ class ChatActivity : AppCompatActivity() {
                     subTitle = "Are you sure you want to delete this message?"
                 )
             }, { CommonUtil.showToastMessage(this, "Coming soon") })
+        }
+        adapter.onMessageClickListener = {
+            showUserDetailDialog(imageUrl = imageUrl, username = name!!, userabout = about!!)
         }
 
         val uid = FirebaseUtil().currentUserId()
@@ -593,6 +599,7 @@ class ChatActivity : AppCompatActivity() {
         val dialogSubTitle = dialogView.findViewById<TextView>(R.id.dialogSubTitle)
         dialogTitle.text = title
         dialogSubTitle.text = subTitle
+        negativeButton.text = "Delete for everyone"
 
 
         positiveButton.setOnClickListener {
@@ -693,7 +700,7 @@ class ChatActivity : AppCompatActivity() {
         popupMenu.show()
     }
 
-    fun showChatLockMenu(view: View, name: String?,imageUrl: String?) {
+    fun showChatLockMenu(view: View, name: String?, imageUrl: String?) {
         val popupMenu = PopupMenu(this, view)
         popupMenu.menuInflater.inflate(R.menu.chatlock, popupMenu.menu)
         popupMenu.setOnMenuItemClickListener { menuItem ->
@@ -721,6 +728,7 @@ class ChatActivity : AppCompatActivity() {
                     }
                     true
                 }
+
                 R.id.imageDownload -> {
                     downloadImage(imageUrl!!)
                     true
@@ -771,6 +779,18 @@ class ChatActivity : AppCompatActivity() {
         val userName = dialogView.findViewById<TextView>(R.id.userName)
         val userAbout = dialogView.findViewById<TextView>(R.id.about)
 
+        val dialog = dialogBuilder.create()
+        imageView.setOnClickListener{
+            StfalconImageViewer.Builder(this, listOf(imageUrl)) { view, image ->
+                // Load the image into the viewer using Glide
+                Glide.with(this)
+                    .load(image)
+                    .placeholder(R.drawable.portrait_placeholder)
+                    .error(R.drawable.portrait_placeholder)
+                    .into(view)
+            }.show()
+            dialog.dismiss()
+        }
 
         // Load the image into the ImageView
         imageUrl?.let {
@@ -792,15 +812,19 @@ class ChatActivity : AppCompatActivity() {
         userName.text = username
         userAbout.text = userabout
 
-        val dialog = dialogBuilder.create()
+
         dialog.show()
+
     }
 
     private fun hasStoragePermission(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             true // No need for storage permission on Android 10+
         } else {
-            ContextCompat.checkSelfPermission(this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ) == PackageManager.PERMISSION_GRANTED
         }
     }
 
@@ -823,9 +847,11 @@ class ChatActivity : AppCompatActivity() {
                 connection.connect()
 
                 val inputStream: InputStream = connection.inputStream
-                val picturesDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES) // Public Pictures folder
+                val picturesDir =
+                    getExternalFilesDir(Environment.DIRECTORY_PICTURES) // Public Pictures folder
 
-                val fileName = "profile_picture_${System.currentTimeMillis()}.jpg" // Unique file name
+                val fileName =
+                    "profile_picture_${System.currentTimeMillis()}.jpg" // Unique file name
                 val file = File(picturesDir, fileName)
                 val outputStream = FileOutputStream(file)
 
@@ -842,9 +868,10 @@ class ChatActivity : AppCompatActivity() {
                         arrayOf("image/jpeg")
                     ) { path, uri ->
                         runOnUiThread {
-                            Toast.makeText(this, "Image saved to gallery: $path", Toast.LENGTH_LONG).show()
+                            Toast.makeText(this, "Image saved to gallery: $path", Toast.LENGTH_LONG)
+                                .show()
                         }
-                        Log.d("image download","Image saved to gallery: $path")
+                        Log.d("image download", "Image saved to gallery: $path")
                     }
                 } else {
                     // Add to MediaStore for older versions
@@ -855,9 +882,13 @@ class ChatActivity : AppCompatActivity() {
                         put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis() / 1000)
                     }
 
-                    val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+                    val uri = contentResolver.insert(
+                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                        contentValues
+                    )
                     runOnUiThread {
-                        Toast.makeText(this, "Image saved to gallery: $uri", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this, "Image saved to gallery: $uri", Toast.LENGTH_LONG)
+                            .show()
                     }
                 }
 
